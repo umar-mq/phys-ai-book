@@ -69,7 +69,7 @@ As a content author (or automated agent), I want the entire course structure to 
 
 ### Edge Cases
 
-- **What happens when** a user's authentication token expires mid-session? The system should gracefully handle the expiry, prompting the user to log back in without losing their current page context.
+- **What happens when** the authentication service is unavailable or a user's authentication token expires mid-session? The system should display a generic "Authentication service temporarily unavailable, please try again later" message. Users should still be able to access the core text of the book without authentication, but with limited AI functionality (e.g., notes, personalization, and advanced chatbot features requiring user context).
 - **How does the system handle** a failure to fetch a response from the chatbot service? The chat interface should display a user-friendly error message and offer a "try again" option.
 - **What happens when** content for a specific language or experience level is missing? The system should fall back gracefully to a default version (e.g., English, Novice) and ideally flag the missing content for authors.
 
@@ -88,11 +88,12 @@ As a content author (or automated agent), I want the entire course structure to 
 - **FR-009**: The platform's navigation elements (e.g., sidebar) MUST accurately reflect the full course structure.
 - **FR-010**: The system MUST support content composed of distinct components for concepts, mathematical notation, and simulations.
 - **FR-011**: The system MUST render diagrams from a structured text-based format.
+- **FR-012**: System MUST allow unauthenticated users to access the core text content of the textbook.
 
 ### Key Entities
 
-- **User**: Represents a person interacting with the platform. Key attribute is their associated Profile.
-- **Profile**: Stores a User's preferences. Key attributes include `experienceLevel` (e.g., "Novice", "Professional") and `language` (e.g., "English", "Urdu").
+- **User**: Represents a person interacting with the platform. All user authentication data (managed by Better-Auth) is stored in the platform's primary database. Key attribute is their associated Profile.
+- **Profile**: Stores a User's preferences. All profile data is stored in the platform's primary database. Key attributes include `experienceLevel` ("Novice" or "Professional") and `language` (e.g., "English", "Urdu").
 - **Content Module**: A logical grouping of content, such as a chapter or a course section.
 - **Content Page**: A specific page within a module, corresponding to a single URL.
 - **Content Component**: An individual piece of content on a page, which can have variations (e.g., a "Novice" version and a "Professional" version).
@@ -106,3 +107,16 @@ As a content author (or automated agent), I want the entire course structure to 
 - **SC-003**: The chat widget is present on all content pages and returns a valid, non-error response to a test query within 5 seconds.
 - **SC-004**: The navigation sidebar correctly displays links to 100% of the modules and chapters defined in the course syllabus.
 - **SC-005**: The platform skeleton can be successfully built and deployed to a target web-hosting environment with a 100% success rate (zero build errors).
+- **SC-006**: The platform reliably supports up to 100 concurrent users with all core functionalities (login, content viewing, chat interaction).
+- **SC-007**: The platform maintains an uptime of 99% of scheduled operational time.
+
+
+## Clarifications
+
+### Session 2025-11-28
+
+- Q: What is the data-hosting strategy for user profiles? → A: Better-Auth is a self-hosted library that writes directly to our Neon (Postgres) database. Therefore, the Neon database is the primary source of truth for BOTH the authentication data (users, sessions - managed by Better-Auth) AND the application-specific profile data (Level, Language - managed by our API). We own the data.
+- Q: What is the target number of concurrent users the platform should be able to support reliably? → A: Up to 100 concurrent users.
+- Q: How should the system behave if the authentication provider (Better-Auth) is unavailable during a user's sign-in or sign-up attempt? → A: Display a generic "Authentication service temporarily unavailable, please try again later" message. Auth is only needed for notes and customization option. The user should still be able to access the core text of the book without an account, just with limited AI functionality.
+- Q: Are the current "Novice" and "Professional" levels a fixed set, or should the system be designed to accommodate additional levels in the future? → A: The levels "Novice" and "Professional" are a fixed, immutable set.
+- Q: What are the high-level reliability or uptime goals for the platform? → A: Moderate availability (e.g., 99% uptime).
