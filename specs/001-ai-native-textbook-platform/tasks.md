@@ -44,12 +44,7 @@ graph TD
 - [x] T001 Initialize a new Docusaurus project with the TypeScript template in the repository root.
 - [x] T002 [P] Install and configure Tailwind CSS for the Docusaurus project, including `tailwind.config.js`, `postcss.config.js`, and `src/css/custom.css`.
 - [x] T003 [P] Install and configure `@docusaurus/theme-mermaid` in `docusaurus.config.ts`.
-- [ ] T004 [P] Install the `better-auth/react` client library via npm/yarn.
-
-## Phase 2: Foundational Components
-
-**Goal**: Create the core providers and context that will be shared across multiple features.
-
+- [x] T004 [P] Install the `better-auth/react` client library via npm/yarn.
 - [ ] T005 Create the global `PersonalizationProvider` in `src/contexts/PersonalizationProvider.tsx` to manage `experienceLevel` and `language`.
 - [ ] T006 Wrap the root of the application with `PersonalizationProvider` in a custom `src/theme/Root.tsx` file.
 - [ ] T007 Integrate the `better-auth/react` provider into `src/theme/Root.tsx`, wrapping the application.
