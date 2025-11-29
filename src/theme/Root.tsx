@@ -1,17 +1,20 @@
 import React from 'react';
 import ChatWidget from '../components/ChatWidget';
+import PersonalizationQuiz from '../components/PersonalizationQuiz';
+import TextSelectionChat from '../components/TextSelectionChat';
 import PersonalizationProvider from '../contexts/PersonalizationProvider';
-// TODO: Replace with the actual provider from 'better-auth/react'
-import { BetterAuthProvider } from '../temp-better-auth-placeholder';
+import { AuthProvider } from '../contexts/AuthContext';
 
 // Default implementation, that you can customize
 export default function Root({children}) {
   return (
-    <BetterAuthProvider>
+    <AuthProvider>
       <PersonalizationProvider>
         {children}
+        <PersonalizationQuiz />
+        <TextSelectionChat />
         <ChatWidget />
       </PersonalizationProvider>
-    </BetterAuthProvider>
+    </AuthProvider>
   );
 }

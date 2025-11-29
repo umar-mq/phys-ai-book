@@ -1,1 +1,55 @@
-# Module 1 Introduction
+---
+sidebar_position: 1
+title: Introduction to Physical AI
+---
+
+import Personalization from '@site/src/components/Personalization';
+
+# Introduction to Physical AI
+
+Welcome to the first module. This content adapts to your selected experience level using the toolbar above.
+
+<Personalization level="novice">
+
+### The Simple Explanation
+
+Physical AI is like giving a robot a brain that understands the real world. 
+Imagine a robot that doesn't just follow pre-programmed instructions but actually *feels* and *reacts* to its environment, much like a human does.
+
+**Key Concepts:**
+*   **Sensors:** The robot's eyes and ears.
+*   **Actuators:** The robot's muscles.
+*   **Brain:** The AI model that connects them.
+
+```mermaid
+graph LR
+    A[Sensors] -->|Data| B(AI Brain)
+    B -->|Commands| C[Actuators]
+    C -->|Action| D{Real World}
+    D -->|Feedback| A
+```
+
+</Personalization>
+
+<Personalization level="expert">
+
+### The Technical Deep Dive
+
+Physical Artificial Intelligence (PAI) refers to the synthesis of AI algorithms with physical hardware systems, emphasizing the co-design of morphology and control. Unlike traditional robotics, where control logic is often hard-coded or based on rigid models, PAI leverages learning-based approaches (Reinforcement Learning, Neural Networks) to handle unstructured environments.
+
+**Mathematical Foundation:**
+We often model the agent-environment interaction as a Markov Decision Process (MDP):
+$$
+(S, A, P, R, \gamma)
+$$
+Where:
+*   $S$: State space (sensor readings)
+*   $A$: Action space (motor torques)
+*   $P$: Transition probability distribution
+*   $R$: Reward function
+
+</Personalization>
+
+### Universal Content
+
+This section is visible to everyone, regardless of their settings. It covers the history of the field and safety protocols.
