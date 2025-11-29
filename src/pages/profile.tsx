@@ -25,8 +25,18 @@ function ProfilePage() {
         <hr />
         <h2>Preferences</h2>
         <div>
-          <p><strong>Experience Level:</strong> {personalization.experienceLevel}</p>
-          <p><strong>Language:</strong> {personalization.language}</p>
+          <h3>Experience Level</h3>
+          <div>
+            <button className="button button--primary margin-right--sm">Novice</button>
+            <button className="button button--secondary">Professional</button>
+          </div>
+        </div>
+        <div className="margin-top--lg">
+          <h3>Language</h3>
+          <div>
+            <button className="button button--primary margin-right--sm">English</button>
+            <button className="button button--secondary">Urdu</button>
+          </div>
         </div>
       </div>
     </Layout>

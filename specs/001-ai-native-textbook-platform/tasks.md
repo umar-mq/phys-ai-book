@@ -57,7 +57,7 @@ graph TD
 **Independent Test**: A user can navigate to the site, log in, visit a profile page, and see their chosen settings.
 
 - [x] T008 [US1] Create a `ProfilePage` at `src/pages/profile.tsx` that displays user information and preferences after login.
-- [ ] T009 [US1] Implement UI elements (e.g., buttons, dropdowns) on the `ProfilePage` for selecting experience level and language.
+- [x] T009 [US1] Implement UI elements (e.g., buttons, dropdowns) on the `ProfilePage` for selecting experience level and language.
 - [ ] T010 [US1] Connect the UI elements to the `PersonalizationProvider` to update the user's state on selection.
 
 ## Phase 4: User Story 2 - Personalized Content (P2)
