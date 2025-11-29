@@ -47,7 +47,7 @@ graph TD
 - [x] T004 [P] Install the `better-auth/react` client library via npm/yarn.
 - [x] T005 Create the global `PersonalizationProvider` in `src/contexts/PersonalizationProvider.tsx` to manage `experienceLevel` and `language`.
 - [x] T006 Wrap the root of the application with `PersonalizationProvider` in a custom `src/theme/Root.tsx` file.
-- [ ] T007 Integrate the `better-auth/react` provider into `src/theme/Root.tsx`, wrapping the application.
+- [x] T007 Integrate the `better-auth/react` provider into `src/theme/Root.tsx`, wrapping the application.
 
 ---
 
