@@ -65,7 +65,7 @@ graph TD
 **Goal**: As a logged-in student, I want to see content adapt to my selected experience level.
 **Independent Test**: Two users with different experience levels see different versions of a content block on the same page.
 
-- [ ] T011 [P] [US2] Create the `<PersonalizationWrapper>` component in `src/components/Personalization/PersonalizationWrapper.tsx`.
+- [x] T011 [P] [US2] Create the `<PersonalizationWrapper>` component in `src/components/Personalization/PersonalizationWrapper.tsx`.
 - [ ] T012 [P] [US2] Create the `usePersonalization` hook in `src/components/Personalization/usePersonalization.ts` to provide easy access to the personalization context.
 
 ## Phase 5: User Story 3 - Interactive Chatbot (P3)
