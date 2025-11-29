@@ -97,5 +97,5 @@ graph TD
 
 **Goal**: Finalize the project, verify deployment, and ensure high quality.
 
-- [ ] T019 Configure the `docusaurus.config.ts` for deployment to GitHub Pages and run `npm run deploy`.
-- [ ] T020 Perform a final review of the site to ensure consistent styling and responsive design across all pages.
+- [x] T019 Configure the `docusaurus.config.ts` for deployment to GitHub Pages and run `npm run deploy`.
+- [x] T020 Perform a final review of the site to ensure consistent styling and responsive design across all pages.
