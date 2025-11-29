@@ -43,7 +43,7 @@ graph TD
 
 - [x] T001 Initialize a new Docusaurus project with the TypeScript template in the repository root.
 - [x] T002 [P] Install and configure Tailwind CSS for the Docusaurus project, including `tailwind.config.js`, `postcss.config.js`, and `src/css/custom.css`.
-- [ ] T003 [P] Install and configure `@docusaurus/theme-mermaid` in `docusaurus.config.ts`.
+- [x] T003 [P] Install and configure `@docusaurus/theme-mermaid` in `docusaurus.config.ts`.
 - [ ] T004 [P] Install the `better-auth/react` client library via npm/yarn.
 
 ## Phase 2: Foundational Components
@@ -78,8 +78,8 @@ graph TD
 **Goal**: As a student, I want to ask a question in a chat widget and receive an answer.
 **Independent Test**: A user can open a chat widget on any page, type a question, and see it appear in the chat history.
 
-- [ ] T013 [P] [US3] Create the basic UI for the `<ChatWidget>` component in `src/components/ChatWidget/index.tsx`.
-- [ ] T014 [US3] Implement the logic to make the `<ChatWidget>` a floating component available on all pages.
+- [x] T013 [P] [US3] Create the basic UI for the `<ChatWidget>` component in `src/components/ChatWidget/index.tsx`.
+- [x] T014 [US3] Implement the logic to make the `<ChatWidget>` a floating component available on all pages.
 - [ ] T015 [US3] Add state management for chat history and a text input form to the `<ChatWidget>`.
 
 ## Phase 6: User Story 4 - Content Skeleton (P4)
