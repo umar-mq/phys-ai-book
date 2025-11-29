@@ -56,7 +56,7 @@ graph TD
 **Goal**: As a new student, I want to create an account, log in, and set my preferred experience level and language.
 **Independent Test**: A user can navigate to the site, log in, visit a profile page, and see their chosen settings.
 
-- [ ] T008 [US1] Create a `ProfilePage` at `src/pages/profile.tsx` that displays user information and preferences after login.
+- [x] T008 [US1] Create a `ProfilePage` at `src/pages/profile.tsx` that displays user information and preferences after login.
 - [ ] T009 [US1] Implement UI elements (e.g., buttons, dropdowns) on the `ProfilePage` for selecting experience level and language.
 - [ ] T010 [US1] Connect the UI elements to the `PersonalizationProvider` to update the user's state on selection.
 
