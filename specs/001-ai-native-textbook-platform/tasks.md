@@ -42,7 +42,7 @@ graph TD
 **Goal**: Initialize the Docusaurus project and configure the core technologies.
 
 - [x] T001 Initialize a new Docusaurus project with the TypeScript template in the repository root.
-- [ ] T002 [P] Install and configure Tailwind CSS for the Docusaurus project, including `tailwind.config.js`, `postcss.config.js`, and `src/css/custom.css`.
+- [x] T002 [P] Install and configure Tailwind CSS for the Docusaurus project, including `tailwind.config.js`, `postcss.config.js`, and `src/css/custom.css`.
 - [ ] T003 [P] Install and configure `@docusaurus/theme-mermaid` in `docusaurus.config.ts`.
 - [ ] T004 [P] Install the `better-auth/react` client library via npm/yarn.
 
