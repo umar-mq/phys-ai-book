@@ -1,17 +1,14 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import Layout from '@theme/Layout';
+import { PersonalizationContext } from '../contexts/PersonalizationProvider';
 
 function ProfilePage() {
+  const { experienceLevel, setExperienceLevel, language, setLanguage } = useContext(PersonalizationContext);
+
   // TODO: Replace with actual user data from better-auth context
   const user = {
     name: 'Test User',
     email: 'test@example.com',
-  };
-
-  // TODO: Replace with actual personalization data from PersonalizationContext
-  const personalization = {
-    experienceLevel: 'Novice',
-    language: 'English',
   };
 
   return (
@@ -25,17 +22,37 @@ function ProfilePage() {
         <hr />
         <h2>Preferences</h2>
         <div>
-          <h3>Experience Level</h3>
+          <h3>Experience Level: {experienceLevel}</h3>
           <div>
-            <button className="button button--primary margin-right--sm">Novice</button>
-            <button className="button button--secondary">Professional</button>
+            <button
+              className={`button ${experienceLevel === 'Novice' ? 'button--primary' : 'button--secondary'} margin-right--sm`}
+              onClick={() => setExperienceLevel('Novice')}
+            >
+              Novice
+            </button>
+            <button
+              className={`button ${experienceLevel === 'Professional' ? 'button--primary' : 'button--secondary'}`}
+              onClick={() => setExperienceLevel('Professional')}
+            >
+              Professional
+            </button>
           </div>
         </div>
         <div className="margin-top--lg">
-          <h3>Language</h3>
+          <h3>Language: {language}</h3>
           <div>
-            <button className="button button--primary margin-right--sm">English</button>
-            <button className="button button--secondary">Urdu</button>
+            <button
+              className={`button ${language === 'English' ? 'button--primary' : 'button--secondary'} margin-right--sm`}
+              onClick={() => setLanguage('English')}
+            >
+              English
+            </button>
+            <button
+              className={`button ${language === 'Urdu' ? 'button--primary' : 'button--secondary'}`}
+              onClick={() => setLanguage('Urdu')}
+            >
+              Urdu
+            </button>
           </div>
         </div>
       </div>

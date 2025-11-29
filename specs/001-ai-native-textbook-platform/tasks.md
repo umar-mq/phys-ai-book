@@ -58,7 +58,7 @@ graph TD
 
 - [x] T008 [US1] Create a `ProfilePage` at `src/pages/profile.tsx` that displays user information and preferences after login.
 - [x] T009 [US1] Implement UI elements (e.g., buttons, dropdowns) on the `ProfilePage` for selecting experience level and language.
-- [ ] T010 [US1] Connect the UI elements to the `PersonalizationProvider` to update the user's state on selection.
+- [x] T010 [US1] Connect the UI elements to the `PersonalizationProvider` to update the user's state on selection.
 
 ## Phase 4: User Story 2 - Personalized Content (P2)
 
