@@ -120,3 +120,23 @@ As a content author (or automated agent), I want the entire course structure to 
 - Q: How should the system behave if the authentication provider (Better-Auth) is unavailable during a user's sign-in or sign-up attempt? → A: Display a generic "Authentication service temporarily unavailable, please try again later" message. Auth is only needed for notes and customization option. The user should still be able to access the core text of the book without an account, just with limited AI functionality.
 - Q: Are the current "Novice" and "Professional" levels a fixed set, or should the system be designed to accommodate additional levels in the future? → A: The levels "Novice" and "Professional" are a fixed, immutable set.
 - Q: What are the high-level reliability or uptime goals for the platform? → A: Moderate availability (e.g., 99% uptime).
+
+**Context:**
+We are building the "Docusaurus Frontend" for the Physical AI Textbook.
+The backend (FastAPI/Qdrant/Neon) is treated as an external API.
+We are using Docusaurus with TypeScript and Tailwind CSS.
+
+**Key Architectural Requirements:**
+1.  **Global State:** We need a `PersonalizationProvider` (React Context) that wraps the entire app to manage `userLevel` (Novice/Expert) and `language` (English/Urdu).
+2.  **Auth Integration:** We must use the `better-auth/react` client library to handle session state in the top-level layout.
+3.  **Custom Components:**
+    *   `<ChatWidget />`: A floating component present on every page.
+    *   `<PersonalizedText />`: A component that renders children based on the `PersonalizationContext`.
+4.  **Content Structure:** Modules are folders in `docs/`. Each module has an `intro.mdx` and multiple sub-chapter `.mdx` files.
+5.  **Styling:** We are overriding Docusaurus's Infima styles with Tailwind CSS where possible.
+
+**Generate a plan that breaks this down into:**
+*   Phase 1: Core Configuration (Tailwind, Docusaurus Config, Mermaid).
+*   Phase 2: Authentication & State (The Context Providers).
+*   Phase 3: UI Components (ChatWidget, Toggle Buttons).
+*   Phase 4: Content Skeleton (Creating the file structure).
