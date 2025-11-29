@@ -80,16 +80,16 @@ graph TD
 
 - [x] T013 [P] [US3] Create the basic UI for the `<ChatWidget>` component in `src/components/ChatWidget/index.tsx`.
 - [x] T014 [US3] Implement the logic to make the `<ChatWidget>` a floating component available on all pages.
-- [ ] T015 [US3] Add state management for chat history and a text input form to the `<ChatWidget>`.
+- [x] T015 [US3] Add state management for chat history and a text input form to the `<ChatWidget>`.
 
 ## Phase 6: User Story 4 - Content Skeleton (P4)
 
 **Goal**: As a content author, I want the entire course structure to be pre-defined with placeholder pages.
 **Independent Test**: The deployed site shows a complete sidebar with links for all modules, and all links are clickable.
 
-- [ ] T016 [P] [US4] Create the directory structure for all course modules (e.g., `docs/module-1`, `docs/module-2`, etc.).
-- [ ] T017 [P] [US4] Create placeholder `intro.mdx` files inside each module directory with a simple title.
-- [ ] T018 [US4] Update `sidebars.ts` to define the navigation structure, ensuring all created placeholder pages are linked.
+- [x] T016 [P] [US4] Create the directory structure for all course modules (e.g., `docs/module-1`, `docs/module-2`, etc.).
+- [x] T017 [P] [US4] Create placeholder `intro.mdx` files inside each module directory with a simple title.
+- [x] T018 [US4] Update `sidebars.ts` to define the navigation structure, ensuring all created placeholder pages are linked.
 
 ---
 
