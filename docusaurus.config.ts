@@ -32,8 +32,10 @@ const config: Config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: '<YOUR_GITHUB_USERNAME>', // Usually your GitHub org/user name.
-  projectName: '<YOUR_REPOSITORY_NAME>', // Usually your repo name.
+  organizationName: 'umar-mq', // Usually your GitHub org/user name.
+  projectName: 'phys-ai-book', // Usually your repo name.
+  trailingSlash: false,
+  deploymentBranch: 'gh-pages',
 
   onBrokenLinks: 'throw',
 
