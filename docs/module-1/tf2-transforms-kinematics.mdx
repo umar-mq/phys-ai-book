@@ -1,0 +1,236 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 1.8 Orientation in Space: TF2 & Transforms
+
+<Personalization level="novice" language="english">
+
+## Where is everything? (The TF Tree)
+
+**The Problem of Coordinate Frames**
+
+Imagine your robot has a Laser Scanner (LiDAR) mounted on top of its head.
+The Laser reports: "I see a wall 2 meters in front of **me**."
+But the robot needs to know: "Where is the wall relative to the **wheels**?" so it doesn't crash.
+
+To solve this, we need to know the relationship (distance and rotation) between the Head and the Wheels.
+In ROS 2, this system is called **TF2** (Transform Framework 2).
+
+**The Tree Structure**
+TF2 organizes all parts of the robot into a family tree.
+*   **Map** (World)
+    *   **Odom** (Start point)
+        *   **Base_Link** (Robot Body)
+            *   **Head_Link**
+                *   **Laser_Link**
+            *   **Left_Wheel**
+
+If we know the distance from `Laser` to `Head`, and `Head` to `Body`, ROS can automatically calculate `Laser` to `Body` using math.
+
+### Using the CLI to debug TF
+
+TF2 issues are the #1 reason robots fail to navigate. We have tools to see what is happening.
+
+1.  **View the Tree**:
+    ```bash
+    ros2 run tf2_tools view_frames
+    ```
+    This generates a PDF showing the tree. All lines must be connected. If the `Laser` is floating unconnected, the robot cannot use its data.
+
+2.  **Echo a Transform**:
+    See the live relationship between two frames.
+    ```bash
+    ros2 run tf2_ros tf2_echo base_link laser_link
+    ```
+    You will see output like `Translation: [0.5, 0.0, 0.2]`. This means the laser is 0.5m forward and 0.2m up from the center of the robot.
+
+### Static vs Dynamic Transforms
+
+*   **Static**: Relationships that never change. (e.g., The Camera is screwed onto the Head). We use a `static_transform_publisher`.
+*   **Dynamic**: Relationships that change constantly. (e.g., The Robot moving in the World, or a Joint rotating). These are published by the `robot_state_publisher` or `odometry`.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## The TF2 Implementation: Listeners and Broadcasters
+
+**Quaternion Math & Frame Conventions**
+
+In robotics, we avoid Euler Angles (Roll, Pitch, Yaw) for internal computation because of **Gimbal Lock**. TF2 uses **Quaternions** (x, y, z, w).
+*   *Requirement*: You must be comfortable converting Euler < - > Quaternion using `tf_transformations` (or `scipy.spatial.transform`).
+
+**REP-105: Standard Coordinate Frames**
+For mobile robotics, you must adhere to ROS Enhancement Proposal 105.
+1.  **map**: Global fixed frame. Discontinuous jumps allowed (e.g., loop closure in SLAM).
+2.  **odom**: Continuous navigation frame. No jumps allowed. Used for local control loops. Drift accumulates here.
+3.  **base_link**: The robot itself.
+
+**The Transform Chain:** `map -> odom -> base_link`
+*   The **Localization Node** (AMCL/SLAM) publishes `map -> odom`.
+*   The **Odometry Node** (Wheel Encoders/IMU) publishes `odom -> base_link`.
+
+### Coding a TF Listener
+
+You often need to transform point clouds or goal poses into the robot's current frame.
+
+```python
+from tf2_ros import TransformListener, Buffer
+from rclpy.node import Node
+
+class TargetFollower(Node):
+    def __init__(self):
+        super().__init__('tf_listener')
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.timer = self.create_timer(1.0, self.on_timer)
+
+    def on_timer(self):
+        try:
+            # Look up transform from 'target_obj' to 'base_link'
+            # Time 0 means "latest available"
+            t = self.tf_buffer.lookup_transform(
+                'base_link', 
+                'target_obj', 
+                rclpy.time.Time()
+            )
+            self.get_logger().info(f"Target is at: {t.transform.translation}")
+        except Exception as e:
+            self.get_logger().warn(f"Could not transform: {e}")
+```
+
+**Common Pitfall: `ExtrapolationException`**
+This happens when you ask for a transform at time $t$ but TF only has data up to $t-0.1$.
+*   *Fix*: Use `tf2_ros.Time(seconds=0)` for "latest", or implement a `try-except` block with a small wait. In high-speed control, ensure your TF broadcasters are running at a sufficiently high rate (>50Hz).
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## TF2: Robot Ko Apni Simt (Orientation) Ka Pata Hona
+
+**Coordinate Frames Ka Masla**
+
+Farz karein aap ke robot ke sar par Laser Scanner laga hai.
+Laser kehta hai: "Mera samne 2 meter door deewar hai."
+Lekin robot ko ye janna hai: "Deewar **pahiye (wheels)** se kitni door hai?" taake wo takraye nahi.
+
+Is maslay ko hal karne ke liye humein pata hona chahiye ke Sar aur Pahiye ke darmiyan kitna faasla hai. ROS 2 mein is nizam ko **TF2** kehte hain.
+
+**Shajra-e-Nasab (Tree Structure)**
+TF2 robot ke har hissay ko ek darakht (tree) ki tarah jorta hai.
+*   **Map** (Dunya)
+    *   **Odom** (Jahan se robot chala)
+        *   **Base_Link** (Robot ka jism)
+            *   **Head_Link** (Sar)
+                *   **Laser_Link** (Aankh)
+            *   **Left_Wheel** (Baya Pahiya)
+
+Agar humein `Laser` se `Head`, aur `Head` se `Body` ka faasla pata ho, to ROS khud bakhud hisab laga leta hai ke `Laser` se `Body` kitni door hai.
+
+### TF Debug Karna
+
+Robots ke fail hone ki sab se bari wajah TF issues hoti hain.
+Tools:
+
+1.  **Tree Dekhna**:
+    ```bash
+    ros2 run tf2_tools view_frames
+    ```
+    Yeh ek PDF banata hai. Agar Laser ka link baki robot se kuta hua (disconnected) hai, to robot us ka data istemal nahi kar payega.
+
+2.  **Echo Transform**:
+    Do hisson ke darmiyan live faasla dekhna.
+    ```bash
+    ros2 run tf2_ros tf2_echo base_link laser_link
+    ```
+    Aap ko nazar aayega: `Translation: [0.5, 0.0, 0.2]`. Is ka matlab hai laser robot ke center se 0.5 meter aage hai.
+
+### Static vs Dynamic
+
+*   **Static (Sakin)**: Wo rishtay jo badaltay nahi. (Jaise Camera sar par screws se laga hua hai). Is ke liye `static_transform_publisher` use hota hai.
+*   **Dynamic (Mutaharik)**: Wo rishtay jo har waqt badaltay hain. (Jaise robot ka zameen par chalna, ya gardan ka ghoomna).
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## TF2 Implementation: Math aur Conventions
+
+**Quaternion Math**
+
+Robotics mein hum angles (Roll, Pitch, Yaw) hisab kitaab ke liye use nahi karte kyunke in mein **Gimbal Lock** ka masla hota hai.
+TF2 **Quaternions** (x, y, z, w) use karta hai.
+*   Aap ko `tf_transformations` library use karni ani chahiye taake aap Euler angles ko Quaternion mein convert kar sakein.
+
+**REP-105: Standard Frames**
+Mobile robotics mein hum REP-105 qanoon follow karte hain:
+1.  **map**: Global frame. Is mein jhatkay (jumps) aa saktay hain (jab robot ko pata chalta hai ke wo ghalat jagah tha).
+2.  **odom**: Local navigation frame. Is mein jhatkay mana hain. Robot ka balance control yahan chalta hai.
+3.  **base_link**: Robot khud.
+
+**TF Chain:** `map -> odom -> base_link`
+*   **Localization (SLAM)** publish karta hai: `map -> odom`.
+*   **Odometry (Encoders)** publish karta hai: `odom -> base_link`.
+
+### TF Listener Likhna
+
+Aksar humein kisi point (target) ko robot ke frame mein convert karna parta hai.
+
+```python
+from tf2_ros import TransformListener, Buffer
+from rclpy.node import Node
+
+class TargetFollower(Node):
+    def __init__(self):
+        super().__init__('tf_listener')
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        self.timer = self.create_timer(1.0, self.on_timer)
+
+    def on_timer(self):
+        try:
+            # 'target_obj' se 'base_link' tak ka transform maanga
+            t = self.tf_buffer.lookup_transform(
+                'base_link', 
+                'target_obj', 
+                rclpy.time.Time()
+            )
+            self.get_logger().info(f"Target yahan hai: {t.transform.translation}")
+        except Exception as e:
+            self.get_logger().warn(f"Masla aa gaya: {e}")
+```
+
+**Common Ghalati: `ExtrapolationException`**
+Ye tab hota hai jab aap wo data maangtay hain jo abhi TF ke paas pohncha nahi (latency ki wajah se).
+Is ke liye `try-except` block lagana zaroori hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What connects the 'map' frame to the 'base_link' frame in a standard TF tree?",
+    options: ["The 'odom' frame", "The 'laser' frame", "The 'world' frame", "Nothing connects them"],
+    correctAnswer: 0
+  },
+  {
+    question: "Why does ROS use Quaternions instead of Euler angles (Roll/Pitch/Yaw)?",
+    options: [
+      "Quaternions are easier to read",
+      "To avoid Gimbal Lock and mathematical singularities",
+      "Because Python only supports Quaternions",
+      "Quaternions use less memory"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar aap robot ke camera ki position fix karna chahte hain (jo hilta nahi), to kaunsa publisher use karenge?",
+    options: [
+      "robot_state_publisher",
+      "static_transform_publisher",
+      "dynamic_transform_publisher",
+      "odometry_publisher"
+    ],
+    correctAnswer: 1
+  }
+]} />

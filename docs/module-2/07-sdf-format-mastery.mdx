@@ -1,0 +1,248 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 2.7 SDF Mastery & Module 2 Capstone
+
+<Personalization level="novice" language="english">
+
+## The Language of Gazebo: SDF
+
+**URDF is for ROS. SDF is for Gazebo.**
+
+We learned **URDF** to describe the robot's body. However, URDF cannot describe the *World* (Sun, Ground, Houses).
+Gazebo created its own format called **SDF (Simulation Description Format)**.
+*   **URDF**: Describes *one* robot.
+*   **SDF**: Describes the *entire universe* (Robots + Lights + Physics + Plugins).
+
+**Converting URDF to SDF**
+When you spawn a URDF robot in Gazebo, it actually converts it to SDF behind the scenes. Sometimes this conversion fails. It is better to know how to write SDF directly for advanced simulation features.
+
+### Structure of an SDF World
+
+```xml
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="default">
+    <!-- 1. The Light Source -->
+    <include>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Sun</uri>
+    </include>
+
+    <!-- 2. The Ground -->
+    <include>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground Plane</uri>
+    </include>
+
+    <!-- 3. Physics Settings -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size> <!-- 1ms time step -->
+      <real_time_factor>1.0</real_time_factor> <!-- Real speed -->
+    </physics>
+
+    <!-- 4. Your Robot -->
+    <model name="my_robot">
+      <pose>0 0 0.5 0 0 0</pose>
+      <link name="base_link">
+        ...
+      </link>
+    </model>
+  </world>
+</sdf>
+```
+
+### Module 2 Capstone: The Maze Runner
+
+**Objective**
+Create a simulation where a robot spawns in a walled maze.
+
+1.  **Create the World**: Use Building Editor to draw a maze (walls forming a path). Save as `maze.sdf`.
+2.  **Add the Robot**: Include your `blinky_bot` from Module 1 into this world.
+3.  **Add Sensors**: Attach a Lidar to the robot.
+4.  **Run**: Launch the simulation and visualize the Lidar in Rviz2.
+
+**Challenge**:
+Can you write a Python node that makes the robot drive forward, and turn left if the Lidar sees a wall closer than 1 meter?
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Advanced SDF: Plugins and Kinematic Loops
+
+**Why SDF exists (The Closed Loop Problem)**
+
+URDF is a "Tree" structure (Parent -> Child). It cannot handle **Closed Kinematic Chains** (Loops).
+*   *Example*: A four-bar linkage mechanism or a robot gripping a railing with two hands.
+SDF allows arbitrary graph structures, making it essential for complex parallel robots (like Stewart Platforms).
+
+### Writing Custom Gazebo Plugins (C++)
+
+Sometimes you need custom logic inside the simulator (e.g., a treadmill that moves objects, or a wind generator). You write a C++ plugin.
+
+```cpp
+#include <gz/sim/System.hh>
+#include <gz/plugin/Register.hh>
+
+using namespace gz;
+using namespace sim;
+
+class WindPlugin : public System, public ISystemPreUpdate
+{
+  public: void PreUpdate(const UpdateInfo &_info, EntityComponentManager &_ecm) override
+  {
+    // Apply force to all objects to simulate wind
+    // ...
+  }
+};
+
+GZ_ADD_PLUGIN(WindPlugin, System, ISystemPreUpdate)
+```
+
+### Composition: The `<include>` Tag vs. Nested Models
+
+SDF allows nesting models.
+*   **Composition**: You can create a `wheel.sdf` and include it 4 times in `car.sdf`.
+*   **Override**: You can override properties of the included model.
+
+```xml
+<include>
+  <uri>model://wheel</uri>
+  <name>front_left_wheel</name>
+  <pose>1 1 0 0 0 0</pose>
+  <!-- Overriding friction for this specific wheel -->
+  <experimental:params>
+    <mu>2.0</mu>
+  </experimental:params>
+</include>
+```
+
+### Module 2 Capstone: High-Fidelity Gym Environment
+
+**Objective**
+Build an OpenAI Gym-compatible environment for RL training.
+1.  **Headless Gazebo**: Configure a launch file to run `gz sim -s`.
+2.  **Reset Plugin**: Use the `WorldControl` system to reset the robot pose without restarting the process (critical for RL speed).
+3.  **Bridge**: Optimize the `ros_gz_bridge` to only expose `/cmd_vel` (Input) and `/scan` + `/odom` (Output).
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Gazebo Ki Zaban: SDF
+
+**URDF ROS ke liye, SDF Gazebo ke liye.**
+
+Hum ne URDF seekha robot banane ke liye. Lekin URDF dunya (Sooraj, Zameen, Ghar) nahi bana sakta.
+Gazebo ka apna format hai jise **SDF** kehte hain.
+*   **URDF**: Sirf Robot.
+*   **SDF**: Puri Kainaat (Robots + Physics + Roshni).
+
+**URDF se SDF**
+Jab aap Gazebo mein URDF robot daltay hain, to Gazebo chupke se usay SDF mein convert karta hai.
+
+### SDF World Ki Saakht
+
+```xml
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="default">
+    <!-- 1. Sooraj -->
+    <include>
+      <uri>.../models/Sun</uri>
+    </include>
+
+    <!-- 2. Zameen -->
+    <include>
+      <uri>.../models/Ground Plane</uri>
+    </include>
+
+    <!-- 3. Physics (Raftaar) -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size> <!-- 1 millisecond -->
+    </physics>
+
+    <!-- 4. Aap ka Robot -->
+    <model name="my_robot">
+      <pose>0 0 0.5 0 0 0</pose> <!-- Zameen se aadha meter oopar -->
+      <link name="base_link"> ... </link>
+    </model>
+  </world>
+</sdf>
+```
+
+### Module 2 Capstone: Bhool Bhulaiya (Maze)
+
+**Maqsad**
+Ek aisi simulation banayein jahan robot deewaron ke beech mein ho.
+
+1.  **Dunya Banayein**: Building Editor se deewarein khari karein aur `maze.sdf` save karein.
+2.  **Robot Dalein**: Module 1 wala `blinky_bot` is mein shamil karein.
+3.  **Sensors**: Robot par Lidar lagayein.
+4.  **Chalayen**: Rviz2 mein dekhein ke robot ko deewarein nazar aa rahi hain.
+
+**Challenge**:
+Kya aap aisa code likh sakte hain ke robot seedha chalta rahe, aur jaise hi deewar 1 meter qareeb aaye, wo baayein (left) murr jaye?
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Advanced SDF: Plugins aur Kinematic Loops
+
+**SDF Kyun Zaroori Hai?**
+
+URDF ek "Tree" hai (Jarr se shakh tak). Yeh **Closed Loops** (Band dairay) nahi bana sakta.
+*   *Misal*: Agar robot ne dono hathon se ek danda pakra hua hai, to ye ek loop ban gaya. URDF yahan fail ho jata hai. SDF graph structure use karta hai jo loops ko handle kar sakta hai.
+
+### Custom Plugins Likhna (C++)
+
+Kabhi kabhi aap ko simulation mein apni marzi ka jadoo chahiye hota hai (Jaise hawa chalana, ya conveyor belt). Is ke liye C++ plugin likhna parta hai.
+
+```cpp
+// C++ Plugin Example
+class WindPlugin : public System
+{
+  // Har frame par ye function chalega
+  public: void PreUpdate(...) 
+  {
+    // Sab cheezon par hawa ka dhakka (force) lagao
+  }
+};
+```
+
+### Composition (Cheezon ko Jorna)
+
+SDF mein aap model ke andar model daal sakte hain.
+Aap ek `wheel.sdf` bana kar usay `car.sdf` mein 4 baar `include` kar sakte hain. Aap har pahiye ki setting (jaise friction) alag bhi kar sakte hain.
+
+### Module 2 Capstone: RL Training Environment
+
+**Maqsad**
+AI ko train karne ke liye ek tez tareen environment banayein.
+1.  **Headless Mode**: Graphics band kar ke simulation chalayein.
+2.  **Fast Reset**: Aisa nizam banayein ke jab robot gir jaye, to wo foran wapis start point par aa jaye (Process restart kiye baghair). Yeh AI training ki speed barhane ke liye lazmi hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the key structural difference between URDF and SDF?",
+    options: ["URDF is XML, SDF is JSON", "URDF supports tree structures only, SDF supports graph structures (closed loops)", "SDF is only for lights", "URDF is faster"],
+    correctAnswer: 1
+  },
+  {
+    question: "How do you include a pre-made model (like a Sun) in an SDF world?",
+    options: ["<spawn>", "<include><uri>...</uri></include>", "<import>", "<copy>"],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar aap ko robot ko train karte waqt graphics ki zaroorat nahi hai, to aap Gazebo ko kaise chalayenge?",
+    options: [
+      "Silent Mode mein",
+      "Headless Mode mein (gz sim -s)",
+      "Sleep Mode mein",
+      "Monitor band kar ke"
+    ],
+    correctAnswer: 1
+  }
+]} />

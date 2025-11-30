@@ -1,0 +1,163 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 3.4 Planning the Path: The Nav2 Stack
+
+<Personalization level="novice" language="english">
+
+## Moving from A to B
+
+**The Brain of Navigation**
+
+We know *where* we are (VSLAM). Now we need to go somewhere.
+**Nav2** is the standard ROS 2 library for moving mobile robots.
+It answers two questions:
+1.  **Global Planner**: "How do I get from the Kitchen to the Bedroom?" (Like Google Maps).
+2.  **Local Planner**: "There is a shoe on the floor, how do I go around it right now?" (Reflexes).
+
+**Costmaps**
+The robot sees the world as a grid called a **Costmap**.
+*   **Black cells**: Walls (Fatal).
+*   **Grey cells**: Near walls (Dangerous).
+*   **White cells**: Free space (Safe).
+The robot tries to stay in the white cells.
+
+### Installing Nav2
+```bash
+sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup
+```
+
+### Running Nav2 with Isaac Sim
+Assuming you have your robot in Isaac Sim publishing `/scan` (Lidar) and `/tf`.
+
+1.  **Launch Nav2**:
+    ```bash
+    ros2 launch nav2_bringup navigation_launch.py use_sim_time:=True
+    ```
+2.  **Open Rviz**:
+    You will see the robot and the map.
+3.  **Set Initial Pose**: Click "2D Pose Estimate" button on top. Click where the robot is.
+4.  **Send Command**: Click "Nav2 Goal" button. Click where you want it to go.
+5.  **Watch**: The robot will plan a path (Green line) and drive there, avoiding obstacles in Isaac Sim.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Behavior Trees & Controller Tuning
+
+**The Nav2 Architecture**
+
+Nav2 is not a single node; it is a modular stack orchestrated by a **Behavior Tree (BT)**.
+Instead of a simple "If-Then" loop, BTs allow complex logic:
+*   *Sequence*: Plan Path -> Follow Path.
+*   *Recovery*: If stuck -> Spin -> Back up -> Wait -> Retry.
+
+**The XML Behavior Tree**:
+You can customize the robot's logic by editing the `navigate_to_pose_w_replanning_and_recovery.xml` file. For a humanoid, you might add a "Crouch" action if the ceiling is low.
+
+### Controller Server (Local Planner)
+
+This follows the global path while avoiding dynamic obstacles.
+For differential drive robots, we use **DWB (Dynamic Window Approach)**.
+For Humanoids/Ackermann vehicles, we prefer **MPPI (Model Predictive Path Integral)**.
+*   **MPPI**: It simulates thousands of random trajectories into the future (using GPU), checks which ones hit obstacles, and chooses the best average path. It is smoother and handles dynamic actors (people walking) better than DWB.
+
+**Tuning Costmaps for Isaac Sim**
+Isaac Sim Lidar is perfect. Real Lidar is noisy.
+*   **Inflation Layer**: Expands the walls by the radius of the robot.
+    *   *Tip*: For a humanoid with swinging arms, increase the inflation radius to ensure the arms don't hit door frames.
+*   **Voxel Layer**: If using 3D depth cameras, use the Voxel Layer to detect obstacles hanging in the air (like tables) that a 2D Lidar sees as "legs only".
+
+### Integration Workflow
+1.  **Isaac Sim**: Publishes `/scan`, `/odom`, `/tf`.
+2.  **VSLAM**: Publishes `map -> odom`.
+3.  **Nav2**: Subscribes to map and scan. Publishes `/cmd_vel`.
+4.  **Isaac Sim**: Subscribes to `/cmd_vel` and applies wheel velocities.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Rasta Plan Karna: Nav2
+
+**Navigation Ka Dimagh**
+
+Humein pata hai hum kahan hain (VSLAM). Ab humein kahin jana hai.
+**Nav2** ROS 2 ka standard system hai robots ko chalane ke liye.
+Yeh do sawalon ka jawab deta hai:
+1.  **Global Planner**: "Kitchen se Bedroom kaise jaun?" (Jaise Google Maps).
+2.  **Local Planner**: "Raaste mein joota para hai, us se kaise bachoon?" (Reflexes).
+
+**Costmaps (Khatray Ka Naqsha)**
+Robot dunya ko ek grid ki tarah dekhta hai.
+*   **Kaalay Dabbay**: Deewarein (Maut).
+*   **Grey Dabbay**: Deewar ke qareeb (Khatra).
+*   **Safed Dabbay**: Khali jagah (Mehfooz).
+Robot koshish karta hai ke safed hisson mein rahay.
+
+### Nav2 Chalana
+Agar Isaac Sim mein robot `/scan` (Lidar) bhej raha hai.
+
+1.  **Launch**:
+    ```bash
+    ros2 launch nav2_bringup navigation_launch.py use_sim_time:=True
+    ```
+2.  **Rviz**: Kholein.
+3.  **Initial Pose**: Upar "2D Pose Estimate" button dabayein aur batayein robot kahan khara hai.
+4.  **Goal**: "Nav2 Goal" button dabayein aur click karein kahan jana hai.
+5.  **Dekhein**: Robot rasta (Green line) banaye ga aur chal pare ga.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Behavior Trees aur MPPI
+
+**Nav2 Kaise Kaam Karta Hai?**
+
+Nav2 koi aik program nahi hai. Yeh **Behavior Tree (BT)** ke zariye control hota hai.
+BT faisla karta hai:
+*   Pehle Rasta banao.
+*   Phir raste par chalo.
+*   *Recovery*: Agar phans jao, to peechay hato, ghoomo, aur dobara koshish karo.
+
+### Controller (Local Planner)
+
+Yeh wo hissa hai jo robot ko chalata hai.
+Humanoid robots ke liye hum **MPPI** controller pasand karte hain.
+*   **MPPI**: Yeh GPU ka istemal kar ke aanay wale waqt ki hazaron possibilities sochta hai. "Agar main dayein gaya to kya hoga? Agar baayein gaya to kya hoga?". Phir ye sab se mehfooz rasta chunta hai. Yeh DWB (puranay tareeqay) se bohat behtar hai.
+
+**Costmaps Tuning**
+*   **Inflation**: Deewaron ko naqshay mein thora mota dikhaya jata hai taake robot bilkul sath ragarr kar na guzray.
+*   **Voxel Layer**: Agar aap ke paas Depth Camera hai, to Voxel layer use karein. Yeh hawa mein latakti cheezon (jaise table ka oopar wala hissa) ko bhi dekh leta hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "Which component of Nav2 calculates the long-distance path from start to goal?",
+    options: ["Local Planner (Controller)", "Global Planner", "Recovery Behavior", "Costmap"],
+    correctAnswer: 1
+  },
+  {
+    question: "What does the 'Inflation Layer' in a Costmap do?",
+    options: [
+      "Makes the robot bigger",
+      "Adds a buffer zone around obstacles to prevent the robot from getting too close",
+      "Calculates air pressure",
+      "Draws the map in 3D"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar robot bar bar deewar mein takra raha hai, to aap Costmap ki kaunsi setting check karenge?",
+    options: [
+      "Inflation Radius (barhayenge)",
+      "Resolution (kam karenge)",
+      "Robot ka rang",
+      "Map ka naam"
+    ],
+    correctAnswer: 0
+  }
+]} />

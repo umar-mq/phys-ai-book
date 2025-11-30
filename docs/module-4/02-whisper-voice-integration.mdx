@@ -1,0 +1,177 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 4.2 Voice-to-Action: OpenAI Whisper
+
+<Personalization level="novice" language="english">
+
+## Giving the Robot Ears
+
+**The Goal**
+We want to talk to the robot: *"Robot, go to the kitchen."*
+The robot needs to convert Sound Waves -> Text.
+This technology is **ASR (Automatic Speech Recognition)**.
+The best open-source model currently is **OpenAI Whisper**.
+
+### Setting up Whisper
+We will run Whisper on the PC (or Cloud) because it is heavy.
+
+1.  **Install**:
+    ```bash
+    pip install openai-whisper sounddevice numpy
+    ```
+2.  **The Python Script (`voice_commander.py`)**:
+    This script listens to the microphone, converts speech to text, and publishes it to a ROS 2 topic `/voice_command`.
+
+```python
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+import whisper
+import sounddevice as sd
+import numpy as np
+
+class VoiceNode(Node):
+    def __init__(self):
+        super().__init__('voice_node')
+        self.pub = self.create_publisher(String, 'voice_command', 10)
+        # Load Model (Base is faster, Medium is more accurate)
+        self.model = whisper.load_model("base")
+        self.get_logger().info("Listening...")
+
+    def listen_and_publish(self):
+        # Record 5 seconds of audio
+        audio = sd.rec(int(5 * 16000), samplerate=16000, channels=1)
+        sd.wait()
+        
+        # Transcribe
+        result = self.model.transcribe(audio.flatten())
+        text = result["text"]
+        
+        self.get_logger().info(f"You said: {text}")
+        msg = String()
+        msg.data = text
+        self.pub.publish(msg)
+
+# (Main function omitted)
+```
+
+**Testing:**
+Run the node. Say "Hello Robot".
+Open a terminal: `ros2 topic echo /voice_command`.
+You should see: `data: " Hello Robot."`
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Optimized Inference: Whisper on Jetson (Distil-Whisper)
+
+**Latency vs. Accuracy**
+
+Standard Whisper models are Transformers. The "Large-v3" model is highly accurate but takes ~10GB VRAM and ~2 seconds to transcribe on a GPU.
+For real-time interaction, 2 seconds is too slow (Human interaction feels laggy after 500ms).
+
+**Optimization Strategies for Jetson Orin:**
+1.  **Distil-Whisper**: A distilled version that is 6x faster with < 1% accuracy loss.
+2.  **Faster-Whisper (CTranslate2)**: Uses quantization (INT8) to run efficiently on inference hardware.
+3.  **VAD (Voice Activity Detection)**: Do not run Whisper on silence. Use a cheap WebRTC-VAD model to detect *when* someone is speaking, then trigger Whisper.
+
+### Wake Word Detection (Porcupine / OpenWakeWord)
+Streaming audio to Whisper 24/7 melts the Jetson.
+We use a **Wake Word** engine (like "Hey Robot").
+*   Architecture: `Microphone -> VAD -> WakeWord -> Whisper -> LLM`.
+
+### ROS 2 Audio Architecture
+Raw audio in ROS 2 is handled by `audio_common`.
+However, for Python-centric VLA pipelines, we simply use PyAudio/SoundDevice inside a ROS node.
+*   **QoS**: Use `Reliable` for text commands. Use `BestEffort` if streaming raw audio bytes to a remote server.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Robot Ko Kaan Dena: Whisper
+
+**Maqsad**
+Hum chahte hain robot se baat karna: *"Kitchen mein jao."*
+Robot ko Awaaz se Text banana hai.
+Is ke liye hum **OpenAI Whisper** use karenge.
+
+### Whisper Setup
+1.  **Install**:
+    ```bash
+    pip install openai-whisper sounddevice
+    ```
+2.  **Python Script**:
+    Hum ek node banayenge jo microphone sunta hai, aur text ko `/voice_command` topic par bhejta hai.
+
+```python
+# (Code English section wala same hai)
+# Model load karein
+self.model = whisper.load_model("base")
+
+# Audio record karein
+audio = sd.rec(...)
+# Text banayein
+text = self.model.transcribe(audio)
+# ROS par bhejein
+self.pub.publish(text)
+```
+
+**Test Karein:**
+Node chalayein aur bolein "Salaam Robot".
+Doosre terminal mein dekhein: `ros2 topic echo /voice_command`.
+Aap ko nazar aayega: `data: "Salaam Robot."`
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Jetson Ke Liye Optimization
+
+**Speed aur Accuracy**
+
+Whisper ka bara model bohat slow hai. Agar robot 2 second baad jawab de, to maza nahi aata.
+Jetson ke liye humein tez tareeqa chahiye.
+
+**Distil-Whisper**
+Ye chota version hai jo 6 guna tez chalta hai.
+
+**Wake Word (Jaagnay Ka Lafz)**
+Agar hum har waqt Whisper chalayenge to Jetson garam ho jaye ga.
+Hum "Wake Word" use karte hain (jaise "Hey Siri").
+Pehle sasta model sunta hai "Hey Robot". Jab wo sun leta hai, tab Whisper on hota hai.
+
+**Architecture**:
+`Mic -> Shor Check (VAD) -> Wake Word -> Whisper -> Dimagh`.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the primary function of OpenAI Whisper?",
+    options: ["Text-to-Speech", "Automatic Speech Recognition (Audio-to-Text)", "Image Generation", "Robot Walking"],
+    correctAnswer: 1
+  },
+  {
+    question: "Why do we use 'Voice Activity Detection' (VAD) before running Whisper?",
+    options: [
+      "To save battery and compute by only processing when someone is actually talking",
+      "To make the audio louder",
+      "To translate the language",
+      "It is required by ROS"
+    ],
+    correctAnswer: 0
+  },
+  {
+    question: "Urdu: Wake Word (jaise 'Hey Robot') ka faida kya hai?",
+    options: [
+      "Robot ko neend aati hai",
+      "Taake bhaari AI model har waqt na chalta rahe",
+      "Awaz saaf hoti hai",
+      "Robot khush hota hai"
+    ],
+    correctAnswer: 1
+  }
+]} />

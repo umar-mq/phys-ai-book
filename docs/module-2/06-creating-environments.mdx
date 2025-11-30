@@ -1,0 +1,212 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 2.6 Building the World: Environment Design
+
+<Personalization level="novice" language="english">
+
+## Creating a Digital Home
+
+A robot needs an environment to live in. A white empty floor is boring and useless for testing.
+We need walls, tables, doors, and clutter.
+
+**Two Ways to Build Worlds:**
+1.  **Building Blocks (Primitives)**: Using cubes and cylinders directly in the simulator. Good for simple mazes.
+2.  **Mesh Import**: Importing a 3D model of a house (made in Blender/SketchUp). Good for realism.
+
+### Method 1: The Gazebo Building Editor
+Gazebo has a built-in tool.
+1.  Open Gazebo.
+2.  Go to `Edit > Building Editor`.
+3.  **Draw Walls**: Click and drag to make rooms.
+4.  **Add Windows/Doors**: Drag them onto the walls.
+5.  **Save**: This creates an `.sdf` file of your house.
+
+### Method 2: Using Assets (Fuel)
+Gazebo has an online library called **Gazebo Fuel** (like the App Store for 3D models).
+1.  In Gazebo, look at the "Fuel" tab on the right.
+2.  Search for "Table".
+3.  Drag the "Cafe Table" into your world.
+4.  It downloads the model and textures automatically.
+
+### Saving the World
+Once you have arranged your furniture:
+1.  `File > Save World As`.
+2.  Save it as `my_house.sdf`.
+
+To load it later:
+```bash
+ign gazebo my_house.sdf
+```
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Procedural Generation & Domain Randomization
+
+**The Problem of Overfitting**
+
+If you train a robot to navigate ONLY in "Living Room A", it will fail in "Living Room B".
+If you train it with the sun shining through the window at 9 AM, it might fail at 8 PM.
+This is **Overfitting**.
+
+To solve this, we use **Domain Randomization** (DR). We want the environment to change every time the simulation resets.
+
+### Dynamic Environment Loading (Scripting)
+
+Instead of a static `.sdf` file, we write a script to generate the world.
+
+```python
+# Pseudo-code for a World Generator
+import random
+
+def generate_world_sdf():
+    sdf = "<sdf version='1.7'><world name='random_world'>..."
+    
+    # Spawn 10 random obstacles
+    for i in range(10):
+        x = random.uniform(-5, 5)
+        y = random.uniform(-5, 5)
+        sdf += f"""
+        <include>
+            <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Cinder Block</uri>
+            <pose>{x} {y} 0 0 0 0</pose>
+        </include>
+        """
+    
+    sdf += "</world></sdf>"
+    return sdf
+```
+
+### Texture Randomization in Unity
+In Unity, DR is easier. We can change the color of the floor, the intensity of the light, and the texture of the walls every episode.
+
+```csharp
+// Unity Domain Randomization Script
+public Material[] floorMaterials;
+
+void ResetEpisode() {
+    // Change floor texture randomly
+    floorRenderer.material = floorMaterials[Random.Range(0, floorMaterials.Length)];
+    
+    // Randomize Light
+    sunLight.intensity = Random.Range(0.5f, 2.0f);
+}
+```
+By training the AI on 1000 variations of "floor color", it learns that **Floor Color doesn't matter**. It focuses on the geometry instead.
+
+### Asset Optimization (Baking)
+If you import a high-res CAD model of a factory:
+1.  **LOD (Level of Detail)**: Create simplified versions of objects for distant viewing.
+2.  **Light Baking**: Pre-calculate shadows for static objects (walls). Real-time shadows are expensive.
+3.  **Occlusion Culling**: Don't render objects behind walls.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Dunya Banana: Environment Design
+
+**Robot Ka Ghar**
+
+Robot ko test karne ke liye humein ghar, daftar, ya factory chahiye. Sirf safed zameen kaafi nahi hai.
+
+**Dunya Banane Ke Do Tareeqay:**
+1.  **Building Blocks**: Gazebo ke andar hi deewarein khari kar dena. (Simple kamron ke liye).
+2.  **Mesh Import**: Kisi architect ka banaya hua 3D model (Blender se) import karna. (Asli ghar ke liye).
+
+### Tareeqa 1: Gazebo Building Editor
+1.  Gazebo kholein.
+2.  `Edit > Building Editor` par jayein.
+3.  **Deewarein**: Mouse se draw karein.
+4.  **Khirki/Darwaza**: Deewar par laga dein.
+5.  **Save**: Yeh aap ke ghar ki file bana de ga.
+
+### Tareeqa 2: Gazebo Fuel (Online Store)
+Gazebo ki online library hai jise **Fuel** kehte hain.
+1.  Gazebo mein right side par "Fuel" tab dekhein.
+2.  Search karein "Table".
+3.  Table ko kheench kar dunya mein rakh dein.
+4.  Computer khud bakhud model download kar lega.
+
+### Save Karna
+Jab furniture set ho jaye:
+1.  `File > Save World As`.
+2.  Naam rakhein `my_house.sdf`.
+Baad mein chalane ke liye: `ign gazebo my_house.sdf`.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Procedural Generation (Khudkaar Dunya)
+
+**Ratta Lagane Ka Masla (Overfitting)**
+
+Agar aap robot ko sirf "Kamra A" mein train karein gay, to wo "Kamra B" mein fail ho jaye ga.
+Agar aap usay subah ki roshni mein train karein gay, to wo raat ko fail ho jaye ga.
+Isay **Overfitting** kehte hain.
+
+Hal yeh hai ke hum **Domain Randomization** use karein. Yani har baar jab simulation shuru ho, kamra badal jaye.
+
+### Dynamic Loading
+
+Hum static file ki bajaye code ke zariye dunya banate hain.
+Hum Python script likhte hain jo kehta hai: *"10 kursiyan lo aur unhein kamray mein random jagah par rakh do."*
+Is se robot har baar naya challenge face karta hai.
+
+### Unity Mein Rang Badlna
+
+Unity mein yeh kaam aasaan hai. Hum script ke zariye zameen ka rang aur sooraj ki roshni badal dete hain.
+
+```csharp
+void ResetEpisode() {
+    // Farsh ka rang badal do
+    floorRenderer.material = floorMaterials[Random.Range(0, 10)];
+    
+    // Roshni kam ya zyada karo
+    sunLight.intensity = Random.Range(0.5f, 2.0f);
+}
+```
+Jab AI 1000 mukhtalif rangon ke farsh dekhti hai, to wo seekh jati hai ke **Farsh ka rang ahem nahi hai**, rasta ahem hai.
+
+### Optimization
+Agar aap bohat bhari (high-detail) factory ka model import kar rahe hain:
+1.  **LOD**: Door ki cheezon ko dhundla (low quality) dikhayein.
+2.  **Light Baking**: Deewaron ke saye (shadows) pehle se calculate kar lein taake computer par bojh kam pare.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is Gazebo Fuel?",
+    options: [
+      "The liquid used to power the robot",
+      "An online database of 3D models and environments",
+      "A plugin for physics acceleration",
+      "A coding language"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "What is 'Domain Randomization' used for?",
+    options: [
+      "To make the game look prettier",
+      "To prevent the AI from overfitting to one specific environment (making it robust)",
+      "To save hard drive space",
+      "To speed up the simulation"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar aap chahte hain ke robot har qism ki roshni mein kaam kare, to aap simulation mein kya karenge?",
+    options: [
+      "Hamesha dopehar ka waqt rakhenge",
+      "Roshni ko kabhi tez aur kabhi halka karenge (Randomize)",
+      "Andhera kar denge",
+      "Robot ko torch denge"
+    ],
+    correctAnswer: 1
+  }
+]} />

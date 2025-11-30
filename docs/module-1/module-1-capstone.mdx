@@ -1,0 +1,254 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 1.9 Module 1 Capstone: The Simulated Bot
+
+<Personalization level="novice" language="english">
+
+## Project: Building "Blinky"
+
+**Objective**
+Combine everything you learned in Module 1 to build a simple URDF robot that can be controlled via ROS 2 topics and visualized in Rviz2.
+
+**Requirements:**
+1.  **Package**: Create a package named `blinky_bot`.
+2.  **URDF**: Design a robot with a box body and a moving head (pan/tilt).
+3.  **Launch**: Create a launch file to start `robot_state_publisher` and `rviz2`.
+4.  **Control**: Write a Python node that moves the head back and forth (Sine wave).
+
+### Step 1: The URDF (`urdf/blinky.urdf`)
+Define a base and a head.
+```xml
+<robot name="blinky">
+  <link name="base_link">
+    <visual>
+      <geometry><box size="0.2 0.2 0.2"/></geometry>
+      <material name="white"><color rgba="1 1 1 1"/></material>
+    </visual>
+  </link>
+  
+  <link name="head">
+    <visual>
+      <geometry><sphere radius="0.1"/></geometry>
+      <material name="red"><color rgba="1 0 0 1"/></material>
+    </visual>
+  </link>
+
+  <joint name="neck_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="head"/>
+    <origin xyz="0 0 0.15"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="1"/>
+  </joint>
+</robot>
+```
+
+### Step 2: The Controller Node (`blinky_bot/head_controller.py`)
+This node will publish `JointState` messages to move the head.
+
+```python
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import JointState
+import math
+
+class HeadController(Node):
+    def __init__(self):
+        super().__init__('head_controller')
+        self.pub = self.create_publisher(JointState, 'joint_states', 10)
+        self.timer = self.create_timer(0.1, self.move_head)
+        self.t = 0.0
+
+    def move_head(self):
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.name = ['neck_joint']
+        # Sine wave movement
+        msg.position = [math.sin(self.t)]
+        self.pub.publish(msg)
+        self.t += 0.1
+
+def main():
+    rclpy.init()
+    rclpy.spin(HeadController())
+    rclpy.shutdown()
+```
+
+### Step 3: The Launch File (`launch/visualize.launch.py`)
+We need `robot_state_publisher` to read the URDF and `rviz2` to see it. Note: Since we are manually publishing joint states, we don't strictly need `joint_state_publisher_gui`, but our controller acts as the `joint_state_publisher`.
+
+**(Detailed Launch setup omitted for brevity - use standard template from section 1.6)**
+
+**Verification:**
+Run the launch file. You should see a white box with a red sphere head rotating left and right smoothly in 3D space.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Project: The Inverse Kinematics (IK) Server
+
+**Objective**
+Create a service-based IK solver for a 2-DOF planar arm using `scipy` or numerical methods, and visualize the TF frames.
+
+**Requirements:**
+1.  **URDF**: 2-link arm (`link1`, `link2`).
+2.  **Service**: Create a custom service `SolveIK`. Request: `(x, y)`. Response: `(joint1, joint2)`.
+3.  **TF Broadcasting**: Broadcast the frames of the arm based on the calculated joints.
+
+### The Math (2-Link Planar)
+Given lengths $L_1, L_2$ and target $(x, y)$.
+Using Law of Cosines to find joint angles $\theta_1, \theta_2$.
+$$ \cos(\theta_2) = \frac{x^2 + y^2 - L_1^2 - L_2^2}{2 L_1 L_2} $$
+
+### Implementation Highlights
+
+**Service Callback:**
+```python
+def solve_ik_callback(self, request, response):
+    try:
+        # Inverse Kinematics Logic
+        q2 = math.acos((request.x**2 + request.y**2 - L1**2 - L2**2) / (2*L1*L2))
+        q1 = math.atan2(request.y, request.x) - math.atan2(L2*math.sin(q2), L1 + L2*math.cos(q2))
+        
+        response.joint1 = q1
+        response.joint2 = q2
+        response.success = True
+        
+        # Update Visualization (TF)
+        self.broadcast_transforms(q1, q2)
+        
+    except ValueError:
+        response.success = False # Target out of reach
+    return response
+```
+
+**Broadcasting the Chain:**
+The node must manually broadcast `base -> link1` and `link1 -> link2` transforms using `TransformBroadcaster` so Rviz updates immediately upon service call.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Project: "Blinky" Banana
+
+**Maqsad**
+Module 1 mein seekhi hui har cheez ko mila kar ek chota robot banayein jise hum ROS 2 se control kar sakein.
+
+**Zarooriyat:**
+1.  **Package**: `blinky_bot` naam ka package.
+2.  **URDF**: Ek robot jiska jism (box) ho aur sar (head) ghoom sake.
+3.  **Launch**: `rviz2` aur robot ko start karne ki file.
+4.  **Control**: Ek Python node jo sar ko dayein-bayein hilaye (Sine wave).
+
+### Step 1: URDF
+Ek box aur ek sphere (gola) define karein.
+(Code English section wala use karein, wo same rahega).
+
+### Step 2: Controller Node (`blinky_bot/head_controller.py`)
+Yeh node `JointState` message bheje ga taake sar hile.
+
+```python
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import JointState
+import math
+
+class HeadController(Node):
+    def __init__(self):
+        super().__init__('head_controller')
+        self.pub = self.create_publisher(JointState, 'joint_states', 10)
+        self.timer = self.create_timer(0.1, self.move_head)
+        self.t = 0.0
+
+    def move_head(self):
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.name = ['neck_joint'] # URDF wala joint name
+        # Sine wave (Lehar ki tarah harkat)
+        msg.position = [math.sin(self.t)]
+        self.pub.publish(msg)
+        self.t += 0.1
+
+def main():
+    rclpy.init()
+    rclpy.spin(HeadController())
+    rclpy.shutdown()
+```
+
+### Step 3: Launch File
+Hum launch file chalayenge jo `robot_state_publisher` ko on karegi. Jab humara Python node `joint_states` bheje ga, to `robot_state_publisher` usay sun kar robot ki TF update karega, aur Rviz mein robot hilta hua nazar aayega.
+
+**Tasdeeq:**
+Launch file chalayein. Aap ko screen par ek safed box aur laal sar nazar aana chahiye jo "Na, Na" ke andaaz mein hil raha ho.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Project: Inverse Kinematics (IK) Server
+
+**Maqsad**
+Ek Service banayein jo `(x, y)` coordinate le aur bataye ke robot ke joints `(theta1, theta2)` ko kaisa hona chahiye taake wo wahan pohnch sake.
+
+**Math (2-Link Arm)**
+Humein Trigonometry (Law of Cosines) use karna parega.
+Agar robot ka haath chota hai aur target door hai, to math error aayega. Humein is error ko pakarna (catch) hoga.
+
+### Implementation
+
+**Service Callback:**
+```python
+def solve_ik_callback(self, request, response):
+    try:
+        # Hisab Kitaab
+        # Math.acos domain error de ga agar target door hua
+        q2 = math.acos((request.x**2 + request.y**2 - L1**2 - L2**2) / (2*L1*L2))
+        q1 = math.atan2(request.y, request.x) - math.atan2(L2*math.sin(q2), L1 + L2*math.cos(q2))
+        
+        response.joint1 = q1
+        response.joint2 = q2
+        response.success = True
+        
+        # Visualization update karein
+        self.broadcast_transforms(q1, q2)
+        
+    except ValueError:
+        self.get_logger().error("Haath wahan tak nahi pohnch sakta!")
+        response.success = False
+    return response
+```
+
+**TF Broadcasting:**
+Node ko khud TF broadcast karni paregi taake Rviz mein haath ki position foran update ho jaye jaise hi service call ho.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "In the 'Blinky' project, which node calculates the forward kinematics (transforms) based on the joint angles provided?",
+    options: ["rviz2", "head_controller", "robot_state_publisher", "joint_state_publisher"],
+    correctAnswer: 2
+  },
+  {
+    question: "What happens if you try to calculate Inverse Kinematics for a target point that is further away than the length of the robot arm?",
+    options: [
+      "The robot stretches",
+      "A mathematical domain error occurs (cannot calculate arccos of value > 1)",
+      "The robot moves to the closest point",
+      "ROS 2 crashes"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Rviz2 mein robot ko dekhne ke liye kaunsa topic zaroori hai?",
+    options: [
+      "/camera/image",
+      "/robot_description (URDF) aur /tf",
+      "/battery_status",
+      "/cmd_vel"
+    ],
+    correctAnswer: 1
+  }
+]} />

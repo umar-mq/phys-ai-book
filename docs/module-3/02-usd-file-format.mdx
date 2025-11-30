@@ -1,0 +1,193 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 3.2 The Universal Scene Description (USD)
+
+<Personalization level="novice" language="english">
+
+## The "HTML" of 3D Worlds
+
+**What is USD?**
+In Module 1 and 2, we used **URDF** and **SDF**. These are good for robotics, but bad for artistic worlds.
+Pixar (the movie studio) invented **USD (Universal Scene Description)**.
+NVIDIA adopted it as the standard for the Metaverse.
+
+**Key Features:**
+1.  **Layering**: Think of Photoshop layers.
+    *   Layer 1: The Robot base.
+    *   Layer 2: The Robot with a Blue paint job.
+    *   Layer 3: The Robot with a Blue paint job AND a scratch on the door.
+    You can combine these files without destroying the original.
+2.  **Composition**: You can reference other files. If you update the "Wheel" file, every car in your world updates automatically.
+
+### Importing Your Robot (URDF to USD)
+Isaac Sim cannot read URDF directly. We must convert it.
+
+1.  Open Isaac Sim.
+2.  Go to `Isaac Utils > Workflows > URDF Importer`.
+3.  **Input File**: Select your `blinky.urdf`.
+4.  **Output Folder**: Select where to save the `.usd` file.
+5.  **Settings**:
+    *   Check "Fix Base Link" (if you want it stuck to the ground).
+    *   Check "Create Physics Scene".
+6.  Click **Import**.
+
+Now your robot is a USD file. You can open it, edit materials, and add lights using the powerful Omniverse tools.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## USD Schemas & Physics APIs
+
+**Why USD is Complex but Powerful**
+
+USD is not just a file format; it is a runtime composition engine.
+It uses **Schemas** to define properties.
+*   `UsdGeom`: Geometry (Mesh, Sphere).
+*   `UsdPhysics`: Rigid Body API (Mass, Velocity, Collision).
+*   `UsdShade`: Materials and Textures.
+
+### Non-Destructive Workflows (Deltas)
+
+In a team of 10 roboticists:
+*   Person A builds the map (`map.usd`).
+*   Person B places robots (`scenario.usd` references `map.usd`).
+*   Person C modifies the lighting.
+Person C does **not** edit `map.usd`. They create a "Delta" (Change) layer over it.
+If Person A updates the walls in `map.usd`, Person C's lights still work, and Person B's robots are still there.
+This solves the "Merge Conflict" hell common in text-based formats like SDF.
+
+### The UsdPhysics Schema
+
+To apply physics via Python script in Isaac Sim:
+
+```python
+from pxr import Usd, UsdPhysics, UsdGeom, Gf
+
+stage = omni.usd.get_context().get_stage()
+prim = stage.GetPrimAtPath("/World/Cube")
+
+# Add Rigid Body API
+rigid_body_api = UsdPhysics.RigidBodyAPI.Apply(prim)
+
+# Add Collision API
+collision_api = UsdPhysics.CollisionAPI.Apply(prim)
+
+# Set Mass
+mass_api = UsdPhysics.MassAPI.Apply(prim)
+mass_api.GetMassAttr().Set(10.0)
+```
+This is how you procedurally generate interactive worlds.
+
+### The URDF Importer Details
+The importer maps standard URDF tags to USD schemas:
+*   `<link>` -> `Xform` + `RigidBodyAPI`.
+*   `<visual>` -> `UsdGeomMesh`.
+*   `<collision>` -> `UsdPhysicsCollisionAPI`.
+*   `<joint>` -> `UsdPhysicsRevoluteJoint`.
+
+*Warning*: USD does not support `<transmission>` tags from URDF natively in the same way. Isaac Sim creates "Drive" APIs on the joints directly (stiffness/damping). You often need to retune PID gains after import because PhysX behaves differently than Bullet/Dart.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## 3D Dunya Ki HTML: USD
+
+**USD Kya Hai?**
+Hum ne URDF aur SDF seekha.
+Pixar (cartoon film company) ne **USD (Universal Scene Description)** banaya tha.
+NVIDIA ne isay apni dunya ka standard bana liya.
+
+**Khaas Baatein:**
+1.  **Layers (Tehein)**: Jaise Photoshop mein layers hoti hain.
+    *   Layer 1: Asli Robot.
+    *   Layer 2: Robot par neela rang.
+    *   Layer 3: Robot par neela rang aur kharosh (scratch).
+    Aap asli file ko kharab kiye baghair us mein tabdeeli kar sakte hain.
+2.  **Composition**: Agar aap "Pahiye" ki file update karein gay, to jis jis gaari mein wo pahiya laga hai, wo khud update ho jaye gi.
+
+### Robot Import Karna (URDF se USD)
+Isaac Sim URDF ko seedha nahi parh sakta. Convert karna parta hai.
+
+1.  Isaac Sim kholein.
+2.  `Isaac Utils > Workflows > URDF Importer` par jayein.
+3.  **Input**: Apni `blinky.urdf` select karein.
+4.  **Import** dabayein.
+
+Ab aap ka robot USD ban chuka hai. Aap isay khol kar achi lighting aur texture laga sakte hain.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## USD Schemas aur Physics
+
+**USD Itna Mushkil Kyun Hai?**
+
+USD sirf file format nahi hai, yeh engine hai.
+Yeh **Schemas** use karta hai:
+*   `UsdGeom`: Shaklein (Mesh).
+*   `UsdPhysics`: Wazan aur Takrao.
+*   `UsdShade`: Rang aur Chamak.
+
+### Non-Destructive Workflow (Bina Tord-Phord Ke)
+
+Agar 10 log mil kar kaam kar rahe hain:
+*   Person A ne naqsha banaya (`map.usd`).
+*   Person B ne us naqshay mein robot rakhay.
+*   Person C ne lighting set ki.
+Person C `map.usd` ko change nahi karega. Wo us ke oopar ek "Delta" (Tabdeeli) layer lagaye ga.
+Agar Person A deewarein badal de, to bhi Person C ki lighting waisi hi rahe gi. Yeh team work ke liye behtareen hai.
+
+### Python Se Physics Lagana
+
+Agar aap code ke zariye physics lagana chahte hain:
+
+```python
+from pxr import UsdPhysics
+
+# Cube ko pakro
+prim = stage.GetPrimAtPath("/World/Cube")
+
+# Usay Rigid Body banao (Taa ke gir sakay)
+UsdPhysics.RigidBodyAPI.Apply(prim)
+
+# Usay Mass do (Wazan)
+mass_api = UsdPhysics.MassAPI.Apply(prim)
+mass_api.GetMassAttr().Set(10.0)
+```
+
+**URDF Import Masla**:
+Jab aap URDF import karte hain, to Isaac Sim Joints par "Drive" laga deta hai. Aksar aap ko PID gains dobara set karne parte hain kyunke PhysX (Isaac) aur Bullet (Gazebo) ka hisab thora alag hota hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "Who originally invented the USD format?",
+    options: ["NVIDIA", "Pixar", "Apple", "Microsoft"],
+    correctAnswer: 1
+  },
+  {
+    question: "What is the benefit of USD 'Layering'?",
+    options: [
+      "It makes the file smaller",
+      "It allows non-destructive editing (modifying a file without changing the original)",
+      "It makes physics faster",
+      "It is required for ROS"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Isaac Sim mein robot import karne ke liye kaunsa tool use hota hai?",
+    options: [
+      "SDF Importer",
+      "URDF Importer",
+      "Mesh Importer",
+      "Robot Builder"
+    ],
+    correctAnswer: 1
+  }
+]} />

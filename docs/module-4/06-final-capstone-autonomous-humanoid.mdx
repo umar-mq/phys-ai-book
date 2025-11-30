@@ -1,0 +1,250 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 4.6 Module 4 Capstone: The Autonomous Humanoid
+
+<Personalization level="novice" language="english">
+
+## The Final Challenge: "Clean the Room"
+
+**Objective**
+You will build the full "Physical AI" stack.
+The robot will be placed in a messy room in Isaac Sim.
+**Command**: "The room is messy. Please pick up the soda can and put it in the trash bin."
+
+**The Pipeline**
+1.  **Hear**: Whisper listens to your voice command.
+2.  **Think**: LLM (Llama-3) creates a plan.
+    *   `find("soda can")`
+    *   `pick("soda can")`
+    *   `find("trash bin")`
+    *   `place("trash bin")`
+3.  **See**: CLIP/YOLO finds the "soda can" in the image.
+4.  **Move**: Nav2 plans a path to the can.
+5.  **Act**: MoveIt controls the arm to grasp the can.
+
+### Step 1: The Simulation Environment
+Load the `messy_room.usd` environment.
+*   It contains obstacles (chairs).
+*   It contains the target (Coke Can).
+*   It contains the destination (Blue Bin).
+
+### Step 2: The Agent Node
+Create `agent_brain.py`.
+Use **LangChain** to connect the tools.
+
+```python
+# Pseudo-code for the Agent
+def clean_room_task(user_voice):
+    # 1. Voice to Text
+    text = whisper_transcribe(user_voice)
+    print(f"User said: {text}")
+
+    # 2. Plan
+    plan = llm_planner(text) 
+    # Output: ["find_can", "pick_can", "find_bin", "drop_can"]
+
+    # 3. Execute Loop
+    for step in plan:
+        if step == "find_can":
+            location = vla_find("soda can") # Returns x,y,z
+            nav2.go_to(location)
+        
+        elif step == "pick_can":
+            arm.grasp_object()
+            
+        elif step == "find_bin":
+            bin_loc = vla_find("blue bin")
+            nav2.go_to(bin_loc)
+            
+        elif step == "drop_can":
+            arm.open_gripper()
+```
+
+### Step 3: Deployment
+1.  Test in Isaac Sim first.
+2.  If you have the hardware (Jetson + Robot Arm/Quadruped), deploy the Docker container to the robot.
+3.  **Real World Test**: Place a real coke can on the floor. Speak to the robot.
+
+**Grading Criteria**
+*   **Autonomy**: Did you have to intervene? (Joystick usage = Fail).
+*   **Robustness**: If you move the can while the robot is moving, does it update the plan? (Re-planning).
+*   **Safety**: Did the robot hit the wall?
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## End-to-End VLA with Memory & Recovery
+
+**Robustness is the Key**
+
+A simple script works when everything is perfect. Physical AI must handle failure.
+**Failure Modes to Handle:**
+1.  **ASR Error**: Whisper hears "Code Can" instead of "Coke Can". (Grounding should handle fuzzy matching).
+2.  **Navigation Failure**: Nav2 gets stuck in a local costmap minima. (Recovery behavior needed).
+3.  **Grasp Failure**: The object slips from the gripper. (Proprioception/Current sensing needed to detect empty grasp).
+
+### The Cognitive Architecture
+
+We will implement a **State-Machine driven Agent** (e.g., using `FlexBE` or `BehaviorTree.CPP`).
+
+**The "Blackboard" (Shared Memory)**
+*   `user_intent`: "Clean room"
+*   `world_state`: `{ "can": [1.2, 0.5], "bin": [3.0, -1.0] }`
+*   `robot_state`: "holding_object: False"
+
+**Recovery Behaviors**
+If `pick_can` fails (gripper closed fully but current low = no object):
+1.  Update Blackboard: `pick_failed_count += 1`.
+2.  If count < 3: Retry grasp (maybe move back 5cm and re-approach).
+3.  If count >= 3: Ask Human for help ("I cannot grasp the can, please help").
+
+### Sim-to-Real Deployment Checklist
+1.  **Lighting**: Ensure the real room matches the lighting conditions of the CLIP/YOLO training set (or use Zero-Shot CLIP).
+2.  **Calibration**: Hand-Eye Calibration. If the camera is 1cm off, the grasp will miss. Run the calibration routine (`easy_handeye`).
+3.  **Network**: Ensure DDS discovery is working over Wi-Fi. (Use `cyclonedds` config with explicit peer list if multicast is blocked).
+
+**The Final Demo**
+Record a video of your robot performing the task.
+*   Overlay the "Brain's Thoughts" (LLM output) on the video.
+*   Show the Rviz visualization (Costmap + Plan).
+*   Show the external view of the robot.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Aakhri Imtehan: Khud-Mukhtar Robot
+
+**Challenge: "Kamra Saaf Karo"**
+
+**Maqsad**
+Aap ko pura "Physical AI" system banana hai.
+Isaac Sim mein ek ganda kamra hai.
+**Hukum**: "Kamra ganda hai. Meherbani kar ke soda can uthao aur kachray ke dabbay mein dalo."
+
+**Pipeline (Tareeqa)**
+1.  **Sunna**: Whisper aap ki awaaz sunega.
+2.  **Sochna**: LLM (Dimagh) plan banaye ga.
+    *   `dhoondo("can")`
+    *   `uthao("can")`
+    *   `dhoondo("bin")`
+    *   `rakho("bin")`
+3.  **Dekhna**: CLIP/YOLO tasveer mein "can" dhoonde ga.
+4.  **Chalna**: Nav2 can tak janay ka rasta banaye ga.
+5.  **Karna**: MoveIt haath se can uthaye ga.
+
+### Step 1: Mahol (Environment)
+`messy_room.usd` file load karein.
+Is mein kursiyan (rukawatein), Can (Target), aur Bin (Manzil) hain.
+
+### Step 2: Agent Node
+Python mein `agent_brain.py` likhein.
+
+```python
+# Saada Tareeqa
+def clean_room_task(user_voice):
+    # 1. Awaaz se Text
+    text = whisper_transcribe(user_voice)
+    print(f"User ne kaha: {text}")
+
+    # 2. Plan Banana
+    plan = llm_planner(text) 
+    # Plan: ["find_can", "pick_can", "find_bin", "drop_can"]
+
+    # 3. Amal Karna
+    for step in plan:
+        if step == "find_can":
+            location = vla_find("soda can") # X,Y,Z dhoondo
+            nav2.go_to(location) # Wahan jao
+        
+        elif step == "pick_can":
+            arm.grasp_object() # Pakro
+            
+        elif step == "drop_can":
+            arm.open_gripper() # Chor do
+```
+
+### Step 3: Asli Dunya
+1.  Pehle Isaac Sim mein test karein.
+2.  Phir code ko Jetson mein dalein.
+3.  Asli Can zameen par rakhein aur robot ko hukm dein.
+
+**Numbers (Grading)**
+*   **Khud-Mukhtari**: Kya aap ko robot ki madad karni pari? (Agar Remote use kiya to fail).
+*   **Mazbooti**: Agar aap can ko hila dein, kya robot dobara dhoondta hai?
+*   **Safety**: Kya robot deewar mein laga?
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## End-to-End VLA aur Recovery
+
+**Mazbooti (Robustness) Sab Se Ahem Hai**
+
+Simple script tab chalta hai jab sab kuch theek ho. Physical AI ko ghaltion se nipatna aana chahiye.
+**Ghaltiyan:**
+1.  **Sunne mein ghalti**: Whisper ne "Coke" ko "Code" sun liya. (Aap ka code isay samajh le).
+2.  **Phans jana**: Nav2 rasta nahi bana pa raha. (Robot ko peechay hatna chahiye).
+3.  **Pakarr mein ghalti**: Can haath se phisal gaya. (Motor ka current check karein, agar current kam hai to iska matlab haath khali hai).
+
+### Cognitive Architecture
+
+Hum **State Machine** use karenge.
+**Blackboard (Shared Memory)**:
+*   `maqsad`: "Kamra saaf karna"
+*   `dunya_ki_haalat`: `{ "can": [1.2, 0.5], "bin": [3.0, -1.0] }`
+
+**Recovery (Bachao)**
+Agar `pick_can` fail ho jaye (Haath khali band ho gaya):
+1.  Robot yaad rakhay: `koshish_number += 1`.
+2.  Agar 3 se kam koshishain hain: Dobara koshish karo (Thora peechay hato).
+3.  Agar 3 baar fail ho gaya: Insaan ko bulao ("Mujh se nahi ho raha, madad karein").
+
+### Sim-to-Real Checklist
+1.  **Roshni**: Asli kamray ki roshni waisi honi chahiye jaisi training mein thi (ya phir CLIP use karein).
+2.  **Calibration**: Hand-Eye Calibration. Agar camera 1cm bhi ghalat laga hai, to robot hawa mein haath maare ga.
+3.  **Network**: Wi-Fi par communication check karein.
+
+**Final Demo**
+Video record karein jis mein:
+*   Screen par robot ki "Soch" (LLM text) nazar aaye.
+*   Rviz ka naqsha nazar aaye.
+*   Asli robot kaam karta hua nazar aaye.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "In the final capstone, what is the role of the 'Blackboard' in the cognitive architecture?",
+    options: [
+      "To draw pictures",
+      "A shared memory space where different parts of the robot (Vision, Navigation, Planner) write and read the world state",
+      "A literal blackboard in the classroom",
+      "To store the battery level only"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "If the robot tries to pick up the can but fails (gripper closes on air), what is the correct 'Recovery Behavior'?",
+    options: [
+      "Shutdown immediately",
+      "Pretend it happened and move to the bin",
+      "Detect the failure (via current/sensors), back up, re-perceive the object, and try again",
+      "Drive into the wall"
+    ],
+    correctAnswer: 2
+  },
+  {
+    question: "Urdu: Agar Whisper ghalat sun le (Coke ki jagah Code), to humein kya karna chahiye?",
+    options: [
+      "Robot ko band kar dein",
+      "Grounding/Fuzzy Matching use karein taake milta julta lafz (Coke) select ho jaye",
+      "Insaan par chillayein",
+      "Sirf Code dhoondein"
+    ],
+    correctAnswer: 1
+  }
+]} />

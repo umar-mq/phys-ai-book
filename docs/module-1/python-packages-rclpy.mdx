@@ -1,0 +1,330 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 1.5 Structuring Intelligence: Packages & rclpy
+
+<Personalization level="novice" language="english">
+
+## Organizing Your Robot's Brain
+
+**The Concept of a "Package"**
+
+Imagine your computer's "Documents" folder. If you threw every file (homework, photos, music) into one single folder, it would be a mess. You wouldn't find anything.
+ROS 2 uses **Packages** to organize code.
+*   **Navigation Package**: Code for moving.
+*   **Vision Package**: Code for seeing.
+*   **Arm Package**: Code for grabbing.
+
+This makes your code "Portable." If you build a great Vision Package, you can email it to a friend, and they can use it on their robot easily.
+
+### Anatomy of a Python Package
+
+When we ran `ros2 pkg create`, it made several files. Let's understand them.
+
+1.  **package.xml**: The ID Card. It tells ROS:
+    *   The name of the package.
+    *   Who wrote it (You).
+    *   What other packages it needs (Dependencies).
+    
+    *Example:* If your code uses the Camera, you must list `sensor_msgs` here.
+
+2.  **setup.py**: The Installer. It tells ROS how to install your Python scripts so the computer can find them.
+    *   Key Part: `entry_points`. This connects a terminal command (like `ros2 run my_pkg talker`) to a specific Python function (`main()`).
+
+3.  **setup.cfg**: Tells the computer where the executable files should go. You rarely touch this.
+
+### Writing Cleaner Code (Object-Oriented)
+
+In the previous section, we wrote a simple script. Now, we will write **Production Quality** code. We use Classes.
+
+**Why Classes?**
+If you use global variables (variables outside functions), your robot will get confused when you have 50 nodes running. Classes keep data safe inside the node.
+
+```python
+# GOOD PRACTICE: The Class Structure
+import rclpy
+from rclpy.node import Node
+
+class MyRobotDriver(Node):
+    def __init__(self):
+        super().__init__('robot_driver') # Name of the node
+        
+        # Define variables here using 'self'
+        self.speed = 0.0
+        self.battery_level = 100
+        
+        # Create timers and publishers
+        self.timer = self.create_timer(1.0, self.control_loop)
+        
+    def control_loop(self):
+        # This function runs every second
+        self.speed += 0.5
+        self.get_logger().info(f"Accelerating to: {self.speed}")
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = MyRobotDriver() # Create the object
+    try:
+        rclpy.spin(node)   # Run it
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+```
+
+**The Try-Except Block**
+Notice the `try...except KeyboardInterrupt`. This allows you to stop the robot gracefully by pressing `Ctrl+C` in the terminal without seeing ugly error messages.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Lifecycle Nodes (Managed Nodes)
+
+**The Problem with Standard Nodes**
+
+In a standard ROS 2 node, as soon as you instantiate the object (`__init__`), the node starts publishing and subscribing.
+**Scenario**: You turn on a 100kg Humanoid Robot.
+1.  The Motor Controller starts (Node A).
+2.  The Sensor Driver starts (Node B).
+3.  Node A immediately tries to balance the robot.
+4.  But Node B hasn't finished calibrating the IMU (gyroscope).
+5.  **Result**: The robot receives "0.0" data from the IMU, thinks it is falling, and violently kicks its leg to compensate, destroying the gearbox.
+
+**The Solution: Managed Lifecycle Nodes**
+
+ROS 2 introduces a state machine for nodes:
+1.  **Unconfigured**: Node is created but has no configuration.
+2.  **Inactive**: Node is configured (knows it needs to read `/imu/data`), but is *not* executing.
+3.  **Active**: Node is running fully.
+4.  **Finalized**: Node is destroyed.
+
+This allows a "System Manager" to say: *"Configure all nodes. Wait for check. Okay, everyone Activate now."*
+
+**Implementing a Lifecycle Node in rclpy**
+
+*Note: Full Lifecycle support in rclpy is newer than in rclcpp. You may need the `rclpy_lifecycle` package.*
+
+```python
+from rclpy.lifecycle import Node, State, TransitionCallbackReturn
+
+class CameraLifecycleNode(Node):
+    def __init__(self, node_name, **kwargs):
+        super().__init__(node_name, **kwargs)
+        self.pub = None
+
+    def on_configure(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info("Configuring...")
+        # Create publisher here, NOT in __init__
+        self.pub = self.create_lifecycle_publisher(String, "camera_status", 10)
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_activate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info("Activating...")
+        # Start publishing
+        return super().on_activate(state)
+
+    def on_deactivate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info("Deactivating...")
+        # Stop publishing
+        return super().on_deactivate(state)
+
+    def on_cleanup(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info("Cleaning up...")
+        # Destroy publisher to free memory
+        self.destroy_publisher(self.pub)
+        return TransitionCallbackReturn.SUCCESS
+```
+
+### Dependency Management (rosdep)
+
+When distributing your package to other developers (or deploying to the robot via CI/CD), you cannot assume they have the libraries installed.
+You must define dependencies in `package.xml`.
+
+```xml
+<depend>rclpy</depend>
+<depend>std_msgs</depend>
+<exec_depend>python3-numpy</exec_depend>
+```
+
+**The Magic Command**:
+Before building a workspace, always run:
+```bash
+rosdep install --from-paths src -y --ignore-src
+```
+This reads every `package.xml` in your `src` folder and automatically installs the missing Ubuntu libraries (like OpenCV or NumPy) required by your code.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Robot Ka Dimagh Tarteeb Dena (Packages)
+
+**Package Ka Tasawwur**
+
+Apne computer ke "Documents" folder ka sochien. Agar aap school ka kaam, gaanay, aur tasveerein sab ek hi folder mein daal dein, to kuch nahi milega.
+ROS 2 mein code ko tarteeb dene ke liye **Packages** use hotay hain.
+*   **Chalne wala Package**: Robot ke pahiye ghumanay ka code.
+*   **Dekhne wala Package**: Camera ka code.
+*   **Haath wala Package**: Cheezain uthanay ka code.
+
+Iska faida ye hai ke agar aap "Dekhne wala Package" bohot acha banatay hain, to aap usay apnay dost ko email kar saktay hain, aur wo usay apnay robot par asani se chala sakega.
+
+### Python Package Ke Andar Kya Hota Hai?
+
+Jab hum `ros2 pkg create` likhtay hain, to kuch files banti hain.
+
+1.  **package.xml**: Yeh **Shanakhti Card (ID Card)** hai. Yeh ROS ko batata hai:
+    *   Package ka naam kya hai.
+    *   Yeh kis ne likha (Aap ne).
+    *   Isay chalnay ke liye aur kya chahiye (Dependencies).
+    
+    *Misal:* Agar aap ka code Camera use karta hai, to yahan likhna parega ke mujhe Camera ka software chahiye.
+
+2.  **setup.py**: Yeh **Installer** hai. Yeh ROS ko batata hai ke aap ka Python code kahan para hai taake computer usay dhoond sakay.
+    *   Khaas Cheez: `entry_points`. Yeh command (jaise `ros2 run`) ko aap ke Python function (`main()`) se jorta hai.
+
+### Behtareen Code Likhna (Classes)
+
+Pichlay sabaq mein hum ne sada sa code likha tha. Ab hum **Professional Code** likhenge. Hum **Classes** use karenge.
+
+**Classes Kyun?**
+Agar aap "Global Variables" (jo functions ke bahar hotay hain) use karenge, to jab 50 nodes chalengay to robot confuse ho jayega. Class data ko node ke andar mehfooz rakhti hai.
+
+```python
+# ACHA TAREEQA: Class Structure
+import rclpy
+from rclpy.node import Node
+
+class MyRobotDriver(Node):
+    def __init__(self):
+        super().__init__('robot_driver') # Node ka naam
+        
+        # Variables ko 'self' ke sath banayein
+        self.speed = 0.0
+        self.battery_level = 100
+        
+        # Timer banayein
+        self.timer = self.create_timer(1.0, self.control_loop)
+        
+    def control_loop(self):
+        # Yeh function har 1 second baad chalega
+        self.speed += 0.5
+        self.get_logger().info(f"Speed barh rahi hai: {self.speed}")
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = MyRobotDriver() # Object banaya
+    try:
+        rclpy.spin(node)   # Chalaya
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+```
+
+**Try-Except Block**
+Note karein `try...except KeyboardInterrupt`. Iska faida ye hai ke jab aap robot ko rokne ke liye `Ctrl+C` dabayenge, to wo aaram se ruk jayega aur screen par lal rang ke errors nahi aayenge.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Lifecycle Nodes (Managed Nodes)
+
+**Aam Nodes Masla Kyun Hain?**
+
+Aam ROS 2 node mein, jaise hi aap `__init__` call karte hain, node kaam shuru kar deta hai.
+**Scenario**: Aap ne ek 100kg ka Humanoid Robot on kiya.
+1.  Motor Controller on hua (Node A).
+2.  Sensor Driver on hua (Node B).
+3.  Node A ne foran robot ko balance karna shuru kar diya.
+4.  Lekin Node B ne abhi tak Gyroscope calibrate nahi kiya.
+5.  **Nateeja**: Robot ko laga ke wo gir raha hai (kyunke sensor data "0" tha), usne zor se taang maari, aur gearbox toot gaya.
+
+**Hal: Managed Lifecycle Nodes**
+
+ROS 2 nodes ke liye ek State Machine deta hai:
+1.  **Unconfigured**: Node ban gaya hai lekin setup nahi hua.
+2.  **Inactive**: Node setup ho gaya hai (usay pata hai kahan se data lena hai), lekin wo abhi *kaam* nahi kar raha.
+3.  **Active**: Node puri tarah chal raha hai.
+4.  **Finalized**: Node khatam ho gaya.
+
+Is se "System Manager" keh sakta hai: *"Sab log configure ho jao. Intezar karo. Theek hai, ab sab aik saath Activate ho jao."*
+
+**Code Mein Implementation (rclpy)**
+
+```python
+from rclpy.lifecycle import Node, State, TransitionCallbackReturn
+
+class CameraLifecycleNode(Node):
+    def __init__(self, node_name, **kwargs):
+        super().__init__(node_name, **kwargs)
+        self.pub = None
+
+    def on_configure(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info("Configuring (Taiyari)...")
+        # Publisher yahan banayein, __init__ mein nahi
+        self.pub = self.create_lifecycle_publisher(String, "camera_status", 10)
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_activate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info("Activating (Start)...")
+        # Data bhejna shuru
+        return super().on_activate(state)
+
+    def on_deactivate(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info("Deactivating (Pause)...")
+        # Data bhejna band
+        return super().on_deactivate(state)
+
+    def on_cleanup(self, state: State) -> TransitionCallbackReturn:
+        self.get_logger().info("Cleaning up (Safai)...")
+        # Memory free karein
+        self.destroy_publisher(self.pub)
+        return TransitionCallbackReturn.SUCCESS
+```
+
+### Dependency Management (rosdep)
+
+Jab aap apna code doosron ko dete hain (ya robot par deploy karte hain), to zaroori nahi ke unke paas wo libraries hon jo aap use kar rahe hain.
+`package.xml` mein dependencies likhna lazmi hai.
+
+**Jadui Command**:
+Workspace build karne se pehle hamesha yeh chalayein:
+```bash
+rosdep install --from-paths src -y --ignore-src
+```
+Yeh command aap ke `src` folder mein har `package.xml` ko parhti hai aur khud bakhud zaroori libraries (jaise OpenCV, NumPy) internet se install kar deti hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "Which file is responsible for defining the executables (entry points) in a Python ROS 2 package?",
+    options: ["package.xml", "setup.py", "CMakeLists.txt", "config.yaml"],
+    correctAnswer: 1
+  },
+  {
+    question: "What is the primary benefit of Lifecycle Nodes over standard Nodes?",
+    options: [
+      "They run faster",
+      "They allow deterministic startup sequences (Configure -> Activate)",
+      "They use less memory",
+      "They are written in C++ only"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: `package.xml` file ka kya maqsad hai?",
+    options: [
+      "Code ko compile karna",
+      "Package ki maloomat aur dependencies batana",
+      "Robot ko chalana",
+      "Internet check karna"
+    ],
+    correctAnswer: 1
+  }
+]} />

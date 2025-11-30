@@ -1,0 +1,210 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 4.3 Cognitive Planning: From Chat to JSON
+
+<Personalization level="novice" language="english">
+
+## How Robots "Think"
+
+**The Translator**
+When you say "Clean the room," you know what that means.
+1.  Find trash.
+2.  Pick up trash.
+3.  Put in bin.
+A robot only understands specific code commands like `move_to(x, y)` or `grip(open)`.
+
+**LLM as a Planner**
+We use an LLM (like GPT-4 or Llama-3) as a translator. We give it a "System Prompt" that explains the robot's capabilities.
+*   **Input**: "I spilled my drink."
+*   **LLM Thinking**: "Spilled drink means liquid on floor. I need to mop it."
+*   **Output**: `[find_mop(), go_to_spill(), use_mop()]`.
+
+### Prompt Engineering for Robots
+
+We cannot just chat with the robot. We need **Structured Output**.
+We tell the LLM: *"You are a robot helper. Only reply with a JSON list of actions."*
+
+**Python Example (using OpenAI)**
+
+```python
+import openai
+import json
+
+client = openai.OpenAI(api_key="sk-...")
+
+def get_robot_plan(user_command):
+    system_prompt = """
+    You are a robot with these functions:
+    - navigate(location_name)
+    - pick_up(object_name)
+    - place(object_name, location_name)
+    
+    Output format: JSON list of dictionaries.
+    Example: [{"action": "navigate", "target": "kitchen"}]
+    """
+    
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_command}
+        ],
+        response_format={ "type": "json_object" }
+    )
+    
+    return json.loads(response.choices[0].message.content)
+
+# Test
+plan = get_robot_plan("Bring me the apple from the kitchen.")
+print(plan)
+# Output: 
+# {
+#   "plan": [
+#     {"action": "navigate", "target": "kitchen"},
+#     {"action": "pick_up", "target": "apple"},
+#     {"action": "navigate", "target": "user"},
+#     {"action": "place", "target": "user", "location": "hand"}
+#   ]
+# }
+```
+Now, your Python code can read this JSON and call the actual ROS functions.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Constrained Decoding & Grounding
+
+**The Hallucination Problem**
+LLMs love to hallucinate. If you ask a robot to "Make me a sandwich," the LLM might output `spread_peanut_butter()`.
+But if your robot **does not have** a `spread_peanut_butter` function defined in C++, the system will crash.
+
+**Solution 1: Constrained Decoding (Grammars)**
+When running local LLMs (like Llama-3 on Jetson using `llama.cpp` or `vLLM`), we use **Grammar Constraints (BNF)**.
+This forces the LLM to strictly follow a syntax. It *cannot* generate a token that violates the grammar.
+*   *Result*: 100% syntactically correct JSON.
+
+**Solution 2: Grounding (Symbol Grounding Problem)**
+The LLM knows "Apple". The Robot knows `object_id: 402`.
+We need a **Grounding Module**.
+1.  LLM outputs: `pick_up("apple")`.
+2.  Vision System (YOLO/DINO) scans the table.
+    *   Detected: `apple` (confidence 0.9) at $(x=0.5, y=0.2)$.
+    *   Detected: `red_ball` (confidence 0.4).
+3.  **Matcher**: Matches string "apple" to detection `apple`.
+4.  **Execution**: Calls `pick_up(0.5, 0.2)`.
+
+### Code Example: Function Calling (Tools)
+Modern LLM APIs support "Tools" natively.
+
+```python
+tools = [{
+    "type": "function",
+    "function": {
+        "name": "navigate",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "destination": {"type": "string", "enum": ["kitchen", "bedroom", "lab"]}
+            }
+        }
+    }
+}]
+```
+Defining `enum` restricts the LLM to only known locations on the semantic map. If the user says "Go to Mars", the LLM will likely fail gracefully or ask for clarification, rather than outputting `navigate("Mars")` which would confuse the Nav2 stack.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Sochne Ki Salahiyat: Chat se JSON tak
+
+**Robot Kaise Sochta Hai?**
+
+**Tarjuman (Translator)**
+Jab aap kehte hain "Kamra saaf karo", aap ko pata hai is ka matlab kya hai. (Kachra uthao, bin mein dalo).
+Robot ko sirf code samajh aata hai jaise `chalo(x, y)` ya `pakro(open)`.
+
+**LLM Planner**
+Hum LLM (jaise GPT) ko bataur Tarjuman use karte hain.
+*   **Input**: "Meri drink gir gayi hai."
+*   **LLM Ki Soch**: "Drink girne ka matlab hai farsh geela hai. Mujhe pocha lagana hai."
+*   **Output**: `[pocha_dhoondo(), wahan_jao(), pocha_lagao()]`.
+
+### Prompt Engineering
+
+Hum robot se gup shup nahi kar sakte. Humein **Structured Output** chahiye.
+Hum LLM ko sakhti se kehte hain: *"Tum robot ho. Sirf JSON list mein jawab dena."*
+
+**Python Misal**
+Hum OpenAI ko batate hain ke robot ke paas kaun kaun se functions hain (Chalna, Uthana, Rakhna).
+Jab user kehta hai "Kitchen se seb laao", to LLM usay tod kar JSON bana deta hai:
+1.  `navigate("kitchen")`
+2.  `pick_up("apple")`
+3.  `navigate("user")`
+
+Ab aap ka Python code is JSON ko parh kar robot ko asli hukm bhej sakta hai.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Constrained Decoding aur Grounding
+
+**Hallucination (Ghalat Fehmi) Ka Masla**
+LLMs aksar aisi baat kar dete hain jo sach nahi hoti.
+Agar aap robot ko kahein "Sandwich banao", to LLM keh dega `makkhan_lagao()`.
+Lekin agar aap ke robot ke paas `makkhan_lagao` ka function code mein hai hi nahi, to robot crash ho jaye ga.
+
+**Hal 1: Constrained Decoding**
+Jab hum Jetson par Llama-3 chalate hain, hum **Grammar** lagate hain.
+Is se computer majboor ho jata hai ke wo sirf wahi lafz bole jo humare functions list mein hain. Wo apni marzi se naya function ijad nahi kar sakta.
+
+**Hal 2: Grounding (Haqeeqat se Jorna)**
+LLM ko pata hai "Seb" (Apple) kya hai. Lekin Robot ko sirf `object_id: 402` pata hai.
+Humein **Grounding** karni parti hai.
+1.  LLM kehta hai: "Seb Uthao".
+2.  Camera (YOLO) dhoondta hai. Usay seb milta hai coordinates $(0.5, 0.2)$ par.
+3.  **Matcher**: Lafz "Seb" ko coordinates se jorta hai.
+4.  **Execution**: Robot wahan jata hai.
+
+**Tools (Function Calling)**
+Hum LLM ko `enum` (List) dete hain.
+*"Sirf in jaghon par ja sakte ho: [Kitchen, Bedroom]"*.
+Agar user kahe "Mars par jao", to LLM ghalat command nahi banaye ga kyunke Mars list mein nahi hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "Why can't we simply pipe the output of ChatGPT directly to the robot's motors?",
+    options: [
+      "ChatGPT is too smart",
+      "ChatGPT outputs unstructured natural language, but robots need structured commands (JSON/Code)",
+      "Robots only understand Spanish",
+      "It works perfectly fine"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "What is 'Grounding' in the context of VLA?",
+    options: [
+      "Putting the robot on the floor",
+      "Connecting the electrical ground wire",
+      "Linking abstract concepts (like the word 'Apple') to specific physical world data (like coordinates of the apple)",
+      "Punishing the robot"
+    ],
+    correctAnswer: 2
+  },
+  {
+    question: "Urdu: Agar LLM koi aisa function bata de jo robot kar hi nahi sakta (Hallucination), to hum isay kaise rokte hain?",
+    options: [
+      "Robot ko band kar ke",
+      "Grammar Constraints aur Function Definitions ke zariye",
+      "Internet tez kar ke",
+      "Robot ko daant kar"
+    ],
+    correctAnswer: 1
+  }
+]} />

@@ -1,0 +1,382 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 1.6 Launch Systems & Runtime Configuration
+
+<Personalization level="novice" language="english">
+
+## Starting the Entire Robot at Once
+
+**The Problem with `ros2 run`**
+
+So far, we have opened a new terminal tab for every node.
+*   Tab 1: Talker
+*   Tab 2: Listener
+*   Tab 3: Camera
+*   Tab 4: Motor Driver
+
+A real humanoid robot has 100+ nodes. You cannot open 100 tabs. You need a **Launch File**.
+A Launch File is a Python script that starts many nodes at once.
+
+### Creating a Launch File
+
+1.  Inside your package, create a folder named `launch`.
+2.  Create a file `my_robot.launch.py`.
+
+```python
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    return LaunchDescription([
+        # Node 1: The Publisher
+        Node(
+            package='my_robot_controller',
+            executable='talker_node',
+            name='my_talker'
+        ),
+        # Node 2: The Subscriber
+        Node(
+            package='my_robot_controller',
+            executable='listener_node',
+            name='my_listener'
+        )
+    ])
+```
+
+**How to run it:**
+First, you must edit `setup.py` to tell ROS where the launch files are.
+
+```python
+# In setup.py imports
+import os
+from glob import glob
+
+# In data_files list
+(os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+```
+
+Then build and run:
+```bash
+colcon build
+source install/setup.bash
+ros2 launch my_robot_controller my_robot.launch.py
+```
+This will start both nodes instantly in one terminal. `Ctrl+C` stops them all.
+
+### Parameters (Tuning without Coding)
+
+Imagine you want to change the speed of the robot.
+*   **Bad Way**: Open code, change `speed = 5.0` to `speed = 10.0`, save, rebuild, run.
+*   **Good Way**: Use **Parameters**.
+
+Parameters are settings you can change from the outside.
+
+**In Code:**
+```python
+class Mover(Node):
+    def __init__(self):
+        super().__init__('mover')
+        # Declare the parameter with a default value
+        self.declare_parameter('max_speed', 5.0)
+
+    def timer_callback(self):
+        # Read the parameter
+        speed = self.get_parameter('max_speed').value
+        self.get_logger().info(f"Moving at {speed} m/s")
+```
+
+**Running with Parameters:**
+```bash
+ros2 run my_pkg mover --ros-args -p max_speed:=10.0
+```
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Advanced Launch Architecture & Event Handling
+
+**The Launch System as a Scripting Engine**
+
+The ROS 2 Launch system is not just a list of nodes; it is a complex event-driven programming system.
+For a Humanoid Robot, you need logic:
+*   *"Only start the Balance Controller IF the IMU driver started successfully."*
+*   *"If the Vision Node crashes, restart it automatically."*
+*   *"If the Battery drops below 20%, kill the walking node."*
+
+### 1. Event Handlers (Respawning Nodes)
+
+In physical deployments, drivers crash (USB timeouts, loose cables). You cannot have the robot freeze just because a camera glitched.
+
+```python
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnProcessExit
+from launch.actions import ExecuteProcess
+
+# Define the node
+camera_node = Node(
+    package='usb_cam',
+    executable='usb_cam_node_exe',
+    # Enable automatic respawn
+    respawn=True,
+    respawn_delay=2.0
+)
+```
+Setting `respawn=True` ensures high availability.
+
+### 2. Substitutions and Launch Arguments
+
+You rarely hardcode values. You pass them as arguments.
+
+```python
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+
+def generate_launch_description():
+    # Argument definition
+    use_sim_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='false',
+        description='Use simulation (Gazebo) clock if true'
+    )
+    
+    # Using the argument
+    robot_state_publisher = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+    )
+
+    return LaunchDescription([
+        use_sim_arg,
+        robot_state_publisher
+    ])
+```
+
+**Command Line Override:**
+```bash
+ros2 launch my_pkg robot.launch.py use_sim_time:=true
+```
+
+### 3. Dynamic Reconfigure (Runtime Parameter Updates)
+
+You can update parameters while the node is running.
+
+**Enable Parameter Services:**
+By default, nodes create a service `/<node_name>/set_parameters`.
+
+**CLI Update:**
+```bash
+ros2 param set /my_node max_speed 20.0
+```
+
+**Handling Updates in Code (C++ vs Python):**
+In Python, you can register a callback to validate changes (e.g., prevent negative speed).
+
+```python
+self.add_on_set_parameters_callback(self.parameter_callback)
+
+def parameter_callback(self, params):
+    for param in params:
+        if param.name == 'max_speed' and param.value < 0.0:
+            return SetParametersResult(successful=False)
+    return SetParametersResult(successful=True)
+```
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Launch Files Aur Parameters
+
+**Robot Ko Ek Saath Start Karna**
+
+**`ros2 run` ka masla**
+Abhi tak hum har node ke liye nayi terminal window khol rahe thay.
+*   Window 1: Bolne wala
+*   Window 2: Sunne wala
+*   Window 3: Camera
+*   Window 4: Motor
+
+Haqeeqi robot mein 100 se zyada nodes hotay hain. Aap 100 windows nahi khol saktay. Is liye hum **Launch File** use karte hain.
+Launch File ek Python script hoti hai jo sab nodes ko ek sath start kar deti hai.
+
+### Launch File Banana
+
+1.  Apne package mein `launch` naam ka folder banayein.
+2.  Ek file `my_robot.launch.py` banayein.
+
+```python
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    return LaunchDescription([
+        # Node 1
+        Node(
+            package='my_robot_controller',
+            executable='talker_node',
+            name='my_talker'
+        ),
+        # Node 2
+        Node(
+            package='my_robot_controller',
+            executable='listener_node',
+            name='my_listener'
+        )
+    ])
+```
+
+**Chalane Ka Tareeqa:**
+Pehle `setup.py` mein batana parega ke launch file kahan hai. (Jaise English section mein bataya gaya).
+Phir:
+```bash
+ros2 launch my_robot_controller my_robot.launch.py
+```
+Is se saray nodes ek sath chal parengay.
+
+### Parameters (Setting Badlna)
+
+Farz karein aap robot ki speed badalna chahte hain.
+*   **Ghalat Tareeqa**: Code kholein, number badlein, save karein, dobara build karein.
+*   **Sahi Tareeqa**: **Parameters** use karein.
+
+Parameters wo settings hain jo aap robot ko chalaate waqt badal saktay hain.
+
+**Code Mein:**
+```python
+class Mover(Node):
+    def __init__(self):
+        super().__init__('mover')
+        # Default value set ki
+        self.declare_parameter('max_speed', 5.0)
+
+    def timer_callback(self):
+        # Value parhi
+        speed = self.get_parameter('max_speed').value
+        self.get_logger().info(f"Speed: {speed}")
+```
+
+**Bahar se value dena:**
+```bash
+ros2 run my_pkg mover --ros-args -p max_speed:=10.0
+```
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Advanced Launch Architecture
+
+**Launch System: Sirf List Nahi, Logic Hai**
+
+ROS 2 Launch system asal mein ek event-driven programming system hai.
+Humanoid Robot ke liye humein logic chahiye hoti hai:
+*   *"Balance Controller tab tak start na karo jab tak IMU sensor on na ho jaye."*
+*   *"Agar Vision Node crash ho jaye, to khud bakhud restart ho jaye."*
+
+### 1. Event Handlers (Respawning)
+
+Physical dunya mein drivers aksar crash ho jatay hain (taar hil gayi, USB disconnect ho gaya). Hum ye bardasht nahi kar saktay ke robot ruk jaye.
+
+```python
+from launch.actions import RegisterEventHandler
+from launch_ros.actions import Node
+
+camera_node = Node(
+    package='usb_cam',
+    executable='usb_cam_node_exe',
+    # Khud bakhud zinda hone ka option
+    respawn=True,
+    respawn_delay=2.0
+)
+```
+`respawn=True` karne se agar node crash hoga, to system usay 2 second baad dobara chala dega.
+
+### 2. Substitutions aur Arguments
+
+Hum values ko hardcode nahi karte. Hum **Arguments** use karte hain.
+
+```python
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
+
+def generate_launch_description():
+    # Argument define kiya
+    use_sim_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='false',
+        description='Agar simulation hai to true karein'
+    )
+    
+    # Istemal kiya
+    node = Node(
+        package='pkg',
+        executable='exec',
+        parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+    )
+
+    return LaunchDescription([
+        use_sim_arg,
+        node
+    ])
+```
+
+**Command Line se Argument Dena:**
+```bash
+ros2 launch my_pkg robot.launch.py use_sim_time:=true
+```
+
+### 3. Dynamic Reconfigure (Chaltay Hue Settings Badlna)
+
+Aap chaltay hue node ki settings badal saktay hain.
+
+**CLI Update:**
+```bash
+ros2 param set /my_node max_speed 20.0
+```
+
+**Python Callback:**
+Aap code mein check laga saktay hain ke ghalat value na set ho.
+
+```python
+self.add_on_set_parameters_callback(self.parameter_callback)
+
+def parameter_callback(self, params):
+    for param in params:
+        # Agar speed negative ho to reject kar do
+        if param.name == 'max_speed' and param.value < 0.0:
+            return SetParametersResult(successful=False)
+    return SetParametersResult(successful=True)
+```
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the command to start multiple nodes defined in a Python script?",
+    options: ["ros2 run", "ros2 start", "ros2 launch", "ros2 init"],
+    correctAnswer: 2
+  },
+  {
+    question: "How can you change a node's parameter (e.g., speed) from the command line without recompiling?",
+    options: [
+      "Edit the source code",
+      "Use --ros-args -p param_name:=value",
+      "It is impossible",
+      "Delete the package"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar aap chahte hain ke node crash hone par khud restart ho jaye, to launch file mein kya likhenge?",
+    options: [
+      "restart=True",
+      "respawn=True",
+      "loop=True",
+      "again=True"
+    ],
+    correctAnswer: 1
+  }
+]} />

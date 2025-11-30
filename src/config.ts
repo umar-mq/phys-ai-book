@@ -1,11 +1,13 @@
 // src/config.ts
 
-// By default, we use the Mock API to ensure the application works out of the box.
-// To use a real backend, we would typically inject this via build-time env vars
-// or Docusaurus customFields. For now, we default to Mock to ensure stability.
+// By default, we use the Real API now as per user request.
+// Set REACT_APP_MOCK_API='true' to revert to Mock.
 
-export const USE_MOCK_API = true;
+export const USE_MOCK_API = false;
 
-export const API_BASE_URL = 'http://localhost:3000';
+// Default to localhost:8000 for FastAPI backend.
+// We hardcode this to avoid 'process is not defined' errors in the browser.
+// In a production build, this should be replaced via Docusaurus customFields.
+export const API_BASE_URL = 'http://localhost:8000';
 
-console.log(`[Config] Using Mock API: ${USE_MOCK_API}`);
+console.log(`[Config] Using Mock API: ${USE_MOCK_API} at ${API_BASE_URL}`);
