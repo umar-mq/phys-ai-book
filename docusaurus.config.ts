@@ -17,8 +17,8 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  // url: 'https://<YOUR_GITHUB_USERNAME>.github.io',
-  url: "https://example.com",
+  url: 'https://umar-mq.github.io',
+  // url: "https://example.com",
 
   // Add custom fields to access environment variables in client-side code
   customFields: {
@@ -27,8 +27,8 @@ const config: Config = {
 
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  // baseUrl: '/<YOUR_REPOSITORY_NAME>/',
-  baseUrl: "/",
+  baseUrl: '/phys-ai-book/',
+  // baseUrl: "/",
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
