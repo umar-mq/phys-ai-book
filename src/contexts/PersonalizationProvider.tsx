@@ -10,6 +10,7 @@ interface PersonalizationContextType {
   setLanguage: (lang: Language) => void;
   isQuizCompleted: boolean;
   completeQuiz: () => void;
+  resetPreferences: () => void;
 }
 
 export const PersonalizationContext = createContext<PersonalizationContextType | undefined>(undefined);
@@ -61,6 +62,17 @@ const PersonalizationProvider = ({ children }: PersonalizationProviderProps) => 
 
   const completeQuiz = () => setIsQuizCompleted(true);
 
+  const resetPreferences = () => {
+    setExperienceLevel('Novice');
+    setLanguage('English');
+    setIsQuizCompleted(false);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('pai_pref_level');
+      localStorage.removeItem('pai_pref_lang');
+      localStorage.removeItem('pai_quiz_done');
+    }
+  };
+
   return (
     <PersonalizationContext.Provider value={{ 
       experienceLevel, 
@@ -68,7 +80,8 @@ const PersonalizationProvider = ({ children }: PersonalizationProviderProps) => 
       language, 
       setLanguage, 
       isQuizCompleted,
-      completeQuiz
+      completeQuiz,
+      resetPreferences
     }}>
       {children}
     </PersonalizationContext.Provider>
