@@ -10,7 +10,7 @@ export default function Logout() {
   useEffect(() => {
     const doLogout = async () => {
       await logout();
-      history.push('/');
+      history.push('/phys-ai-book/');
     };
     doLogout();
   }, [logout, history]);

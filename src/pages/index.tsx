@@ -36,7 +36,7 @@ function HomepageHeader() {
           </Link>
           <Link
             className="button button--lg px-8 py-4 text-lg rounded-full border-2 border-white text-white hover:bg-white hover:text-black transition-all duration-300 font-semibold"
-            to="/docs/module-1/intro-physical-ai-setup">
+            to="/phys-ai-book/docs/module-1/intro-physical-ai-setup">
             Explore Content
           </Link>
         </div>
