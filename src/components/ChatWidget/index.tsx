@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChatService, ChatMessage } from '../../services/chatService';
 import clsx from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function ChatWidget() {
   const { user } = useAuth();
@@ -59,8 +61,6 @@ export default function ChatWidget() {
     }
   };
 
-
-
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       
@@ -89,13 +89,15 @@ export default function ChatWidget() {
             <div 
               key={msg.id} 
               className={clsx(
-                "max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed",
+                "max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed overflow-hidden",
                 msg.role === 'user' 
                   ? "bg-primary text-white ml-auto rounded-tr-none" 
                   : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mr-auto rounded-tl-none text-gray-800 dark:text-gray-200"
               )}
             >
-              {msg.content}
+              <div className="markdown-content">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              </div>
             </div>
           ))}
           {isTyping && (

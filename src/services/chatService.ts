@@ -1,4 +1,4 @@
-import { USE_MOCK_API, API_BASE_URL } from '../config';
+import { USE_MOCK_API, getApiBaseUrl } from '../config';
 
 export interface ChatMessage {
   id?: string;
@@ -38,19 +38,12 @@ const mockSendSelectedChat = async (selectedText: string, userQuery: string): Pr
 // --- Real Implementation ---
 
 const realSendMessage = async (message: string, history: ChatMessage[]): Promise<ChatResponse> => {
-  // Construct the history payload as expected by the API
-  // API expects: { "history": [ { "role": "string", "content": "string" } ] }
-  // We should include the current message in the history or as a separate field?
-  // Usually 'history' implies past. But if the API is stateless regarding the *current* prompt, 
-  // we might need to append the current message to history.
-  // The API doc only shows 'history'. I'll append the current message to it.
-  
   const payloadHistory = [
     ...history.map(h => ({ role: h.role, content: h.content })),
     { role: 'user', content: message }
   ];
 
-  const res = await fetch(`${API_BASE_URL}/api/chat`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ history: payloadHistory }),
@@ -62,13 +55,8 @@ const realSendMessage = async (message: string, history: ChatMessage[]): Promise
     throw new Error('Chat request failed');
   }
 
-  // API returns "string". It might be a JSON string like "Answer" or { "response": "Answer" }?
-  // The doc says "Example Value Schema: string". This usually means the body IS a string.
-  // But fetch.json() parses JSON strings.
-  // If response is "Hello", json() returns "Hello".
   const data = await res.json();
   
-  // Normalize to ChatResponse
   return {
     response: typeof data === 'string' ? data : data.response || "No response field",
     sources: data.sources || []
@@ -76,7 +64,7 @@ const realSendMessage = async (message: string, history: ChatMessage[]): Promise
 };
 
 const realSendSelectedChat = async (selectedText: string, userQuery: string): Promise<string> => {
-  const res = await fetch(`${API_BASE_URL}/api/chat/selected`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/chat/selected`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 

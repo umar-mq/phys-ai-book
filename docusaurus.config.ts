@@ -20,6 +20,11 @@ const config: Config = {
   // url: 'https://<YOUR_GITHUB_USERNAME>.github.io',
   url: "https://example.com",
 
+  // Add custom fields to access environment variables in client-side code
+  customFields: {
+    apiUrl: process.env.REACT_APP_API_URL || 'https://phys-ai-backend-production.up.railway.app',
+  },
+
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   // baseUrl: '/<YOUR_REPOSITORY_NAME>/',
