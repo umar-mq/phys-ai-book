@@ -19,21 +19,45 @@ interface PersonalizationProviderProps {
 }
 
 const PersonalizationProvider = ({ children }: PersonalizationProviderProps) => {
-  // Try to load from localStorage first
-  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>(() => 
-    (localStorage.getItem('pai_pref_level') as ExperienceLevel) || 'Novice'
-  );
-  const [language, setLanguage] = useState<Language>(() => 
-    (localStorage.getItem('pai_pref_lang') as Language) || 'English'
-  );
-  const [isQuizCompleted, setIsQuizCompleted] = useState(() => 
-    localStorage.getItem('pai_quiz_done') === 'true'
-  );
+  // Initialize with defaults for SSR safety
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('Novice');
+  const [language, setLanguage] = useState<Language>('English');
+  const [isQuizCompleted, setIsQuizCompleted] = useState(false);
+
+  // Load from localStorage on client-side mount
+  useEffect(() => {
+    try {
+      const savedLevel = localStorage.getItem('pai_pref_level') as ExperienceLevel;
+      if (savedLevel) setExperienceLevel(savedLevel);
+
+      const savedLang = localStorage.getItem('pai_pref_lang') as Language;
+      if (savedLang) setLanguage(savedLang);
+
+      const savedQuiz = localStorage.getItem('pai_quiz_done');
+      if (savedQuiz) setIsQuizCompleted(savedQuiz === 'true');
+    } catch (e) {
+      console.warn('Failed to load personalization settings:', e);
+    }
+  }, []);
 
   // Persist changes
-  useEffect(() => { localStorage.setItem('pai_pref_level', experienceLevel) }, [experienceLevel]);
-  useEffect(() => { localStorage.setItem('pai_pref_lang', language) }, [language]);
-  useEffect(() => { localStorage.setItem('pai_quiz_done', String(isQuizCompleted)) }, [isQuizCompleted]);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pai_pref_level', experienceLevel);
+    }
+  }, [experienceLevel]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pai_pref_lang', language);
+    }
+  }, [language]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pai_quiz_done', String(isQuizCompleted));
+    }
+  }, [isQuizCompleted]);
 
   const completeQuiz = () => setIsQuizCompleted(true);
 
@@ -42,7 +66,7 @@ const PersonalizationProvider = ({ children }: PersonalizationProviderProps) => 
       experienceLevel, 
       setExperienceLevel, 
       language, 
-      setLanguage,
+      setLanguage, 
       isQuizCompleted,
       completeQuiz
     }}>
