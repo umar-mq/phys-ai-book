@@ -18,7 +18,7 @@ export default function Login() {
     setError('');
     try {
       await login(email, password);
-      history.push('/profile');
+      history.push('/docs/module-1/intro-physical-ai-setup');
     } catch (err) {
       setError('Invalid email or password.');
     } finally {

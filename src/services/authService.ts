@@ -1,4 +1,4 @@
-import { USE_MOCK_API, API_BASE_URL } from '../config';
+import { USE_MOCK_API, getApiBaseUrl } from '../config';
 
 export interface User {
   id: string;
@@ -63,7 +63,7 @@ const mockLogout = async (): Promise<void> => {
 // --- Real Implementation (Fetch) ---
 
 const realLogin = async (email: string, password: string): Promise<AuthResponse> => {
-  const res = await fetch(`${API_BASE_URL}/api/auth/sign-in/email`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/auth/sign-in/email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -73,7 +73,7 @@ const realLogin = async (email: string, password: string): Promise<AuthResponse>
 };
 
 const realSignup = async (email: string, password: string, name: string): Promise<AuthResponse> => {
-  const res = await fetch(`${API_BASE_URL}/api/auth/sign-up/email`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/auth/sign-up/email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name }),
