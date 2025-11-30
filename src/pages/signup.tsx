@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import { useAuth } from '../contexts/AuthContext';
+import { PersonalizationContext } from '../contexts/PersonalizationProvider';
 import { useHistory } from '@docusaurus/router';
 
 export default function Signup() {
@@ -10,6 +11,7 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { signup } = useAuth();
+  const { resetPreferences } = useContext(PersonalizationContext)!;
   const history = useHistory();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -19,7 +21,8 @@ export default function Signup() {
     setError('');
     try {
       await signup(email, password, name);
-      history.push('/phys-ai-book/docs/module-1/intro-physical-ai-setup');
+      resetPreferences(); // Reset preferences to trigger the quiz
+      history.push('/profile');
     } catch (err) {
       setError('Failed to create account. Try again.');
     } finally {

@@ -3,6 +3,7 @@ import { PersonalizationContext, ExperienceLevel, Language } from '../../context
 import { useAuth } from '../../contexts/AuthContext';
 import LatestDevelopments from '../LatestDevelopments';
 import clsx from 'clsx';
+import Link from '@docusaurus/Link';
 
 export default function PersonalizationBar() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function PersonalizationBar() {
 
   const handleListenPage = () => {
     if (!user) {
+        // Redundant check if UI is hidden, but safe
         alert("Please log in to use the Listen feature.");
         return;
     }
@@ -21,21 +23,16 @@ export default function PersonalizationBar() {
         return;
     }
 
-    // Get content
     const article = document.querySelector('article');
     const text = article?.innerText;
 
     if (!text) return;
 
-    // Stop any existing speech
     window.speechSynthesis.cancel();
 
-    // Basic truncation
     const safeText = text.substring(0, 10000); 
-    
     const utterance = new SpeechSynthesisUtterance(safeText);
     
-    // Optional: Select voice
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Natural'));
     if (preferredVoice) utterance.voice = preferredVoice;
@@ -46,6 +43,19 @@ export default function PersonalizationBar() {
     window.speechSynthesis.speak(utterance);
     setIsPlaying(true);
   };
+
+  if (!user) {
+    return (
+      <div className="sticky top-[60px] z-40 w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-center shadow-sm animate-fade-in mb-8">
+          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-lg">🔒</span>
+              <span>Please</span>
+              <Link to="/login" className="text-primary font-bold hover:underline">log in</Link>
+              <span>to use Personalization & AI features</span>
+          </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sticky top-[60px] z-40 w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between shadow-sm animate-fade-in mb-8">
