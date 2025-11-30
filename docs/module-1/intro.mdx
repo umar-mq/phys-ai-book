@@ -5,6 +5,8 @@ title: Introduction to Physical AI
 
 import Personalization from '@site/src/components/Personalization';
 
+import Quiz from '@site/src/components/Quiz';
+
 # Introduction to Physical AI
 
 Welcome to the first module. This content adapts to your selected experience level using the toolbar above.
@@ -53,3 +55,42 @@ Where:
 ### Universal Content
 
 This section is visible to everyone, regardless of their settings. It covers the history of the field and safety protocols.
+
+## Module Quiz
+
+Test your understanding of the concepts introduced in this module.
+
+<Quiz 
+  questions={[
+    {
+      question: "What is the primary definition of Physical AI?",
+      options: [
+        "AI that exists only in the cloud",
+        "The synthesis of AI algorithms with physical hardware systems",
+        "A robot that looks exactly like a human",
+        "A computer program that simulates physics"
+      ],
+      correctAnswer: 1
+    },
+    {
+      question: "Which component acts as the 'muscles' of a robot?",
+      options: [
+        "Sensors",
+        "Microcontroller",
+        "Actuators",
+        "Battery"
+      ],
+      correctAnswer: 2
+    },
+    {
+      question: "In the MDP model (S, A, P, R, γ), what does 'S' stand for?",
+      options: [
+        "Speed",
+        "Score",
+        "System",
+        "State Space"
+      ],
+      correctAnswer: 3
+    }
+  ]}
+/>

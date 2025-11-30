@@ -49,10 +49,6 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
         },
 
         theme: {
@@ -66,7 +62,9 @@ const config: Config = {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
     colorMode: {
-      respectPrefersColorScheme: true,
+      defaultMode: 'dark',
+      disableSwitch: true,
+      respectPrefersColorScheme: false,
     },
     navbar: {
       title: 'Physical AI',
@@ -78,9 +76,20 @@ const config: Config = {
           label: 'Modules',
         },
         {
-          href: '/profile',
-          label: 'Profile',
+          type: 'dropdown',
           position: 'right',
+          label: '👤',
+          className: 'navbar-profile-dropdown',
+          items: [
+            {
+              label: 'My Profile',
+              to: '/profile',
+            },
+            {
+              label: 'Sign Out',
+              to: '/logout',
+            },
+          ],
         },
       ],
     },
