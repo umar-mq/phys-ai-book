@@ -157,6 +157,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .navbar__title {
   @apply bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 text-transparent bg-clip-text font-extrabold text-2xl tracking-tight;
+  --tw-gradient-to: #34d399 var(--tw-gradient-to-position) !important;
 }
 
 /* Sidebar Styling - "The Max" */
