@@ -1,0 +1,162 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 3.6 Crossing the Gap: Sim-to-Real Transfer
+
+<Personalization level="novice" language="english">
+
+## It Works in Sim, But Not in Real Life?
+
+**The Reality Gap**
+
+You trained your robot in Isaac Sim. It navigates perfectly. You put the code on the real physical robot, and... it crashes into a wall.
+This is the **Sim-to-Real Gap**.
+Why does it happen?
+1.  **Physics**: Real friction is messy. Wheels slip. Motors get hot.
+2.  **Sensors**: Real cameras have motion blur and grain. Real LiDARs have "ghost" readings from shiny surfaces.
+3.  **Latency**: In Sim, the computer is fast. In reality, the Jetson might be slow processing data.
+
+**Strategy 1: System Identification (SysID)**
+Before you trust the sim, you must measure the real robot.
+*   Measure the **Mass**: Weigh every part.
+*   Measure the **Center of Mass**: Hang the robot from a string.
+*   Measure the **Motor Power**: How fast does it accelerate?
+Update your URDF/USD file to match these *exact* numbers.
+
+**Strategy 2: Conservative Safety Limits**
+In Sim, you might drive at 2.0 m/s.
+In Real, start at 0.5 m/s.
+Set your **Costmap Inflation** (safety bubble) larger in real life than in sim.
+
+### Deploying to Jetson
+We use **Docker** to move code safely.
+1.  Build a Docker Image on your PC.
+2.  Save it to a file.
+3.  Copy it to the Jetson.
+4.  Run it.
+This ensures that the "Brain" is exactly the same on both machines.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Domain Randomization & Dynamics Randomization
+
+**The robustification of policies**
+
+To cross the Sim-to-Real gap for complex tasks (like walking or grasping), exact physics modeling (System ID) is often insufficient because some parameters (like friction of a specific carpet) are unmeasurable.
+Instead, we use **Dynamics Randomization**.
+
+**What to Randomize during Training:**
+1.  **Mass**: $\pm 10\%$.
+2.  **Friction**: $\pm 20\%$.
+3.  **Motor Strength (Kp/Kd)**: $\pm 10\%$.
+4.  **Latency**: Inject artificial delays (20ms - 100ms) in the control loop.
+
+If the policy ($ \pi $) can walk despite these random perturbations in Sim, it treats the Real World as just "another random perturbation."
+
+### The Deployment Pipeline (ISAAC ROS)
+
+When moving from Isaac Sim to Jetson Orin:
+1.  **Model Optimization**: Convert PyTorch models (`.pt`) to TensorRT (`.engine`). This provides a 4x-10x speedup on Jetson.
+    ```bash
+    /usr/src/tensorrt/bin/trtexec --onnx=model.onnx --saveEngine=model.engine --fp16
+    ```
+2.  **Middleware Tuning**:
+    *   Set **Cyclone DDS** as the RMW implementation.
+    *   Increase OS receive buffers (`rmem_max`) in `/etc/sysctl.conf` to handle high-bandwidth LiDAR data.
+3.  **Time Synchronization**: Ensure the Jetson and the Workstation (if monitoring) are synced via **Chrony/NTP**. A 500ms time drift breaks TF trees.
+
+### Evaluating Transfer Success
+We measure the **Success Rate** (SR) and **Reality Gap Metric** ($ J $).
+$$ J = || \tau_{sim} - \tau_{real} || $$
+If the torques commanded in Sim differ vastly from Real for the same state, your physics model is wrong.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Haqeeqat Ka Samna: Sim-to-Real Transfer
+
+**Simulation Mein Theek Tha, Asal Mein Fail?**
+
+Aap ne robot ko Isaac Sim mein train kiya. Wo wahan perfect chala. Aap ne code asli robot mein dala, aur... wo deewar mein lag gaya.
+Isay **Sim-to-Real Gap** kehte hain.
+Wajah?
+1.  **Physics**: Asli dunya mein pahiye phisaltay hain. Motors garam ho jati hain.
+2.  **Sensors**: Asli camera mein dhundlahat hoti hai.
+3.  **Speed**: Simulation mein computer tez tha, asli robot ka dimagh (Jetson) shayad slow ho.
+
+**Hikmat-e-Amli 1: Robot Ko Naapna (SysID)**
+Simulation ko sach mannay se pehle, asli robot ko naapein.
+*   **Wazan**: Har purzay ka wazan karein.
+*   **Balance**: Dekhein robot ka wazan kis taraf zyada hai.
+Apne URDF/USD file mein yehi numbers dalein.
+
+**Hikmat-e-Amli 2: Ehtiyat**
+Agar Sim mein robot 2.0 m/s ki speed par chalta hai, to Asal mein 0.5 m/s se shuru karein.
+Apne safety bubble (Inflation) ko asli dunya mein bara rakhein.
+
+### Jetson Par Code Dalna
+Hum **Docker** use karte hain.
+Is ka faida ye hai ke jo code computer par chala, wo yaqeeni taur par robot par bhi chalega.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Dynamics Randomization
+
+**Mazboot Policy Banana**
+
+Asli dunya ki har cheez naapna namumkin hai (maslan qaleen ki ragarr).
+Is liye hum **Dynamics Randomization** use karte hain.
+Hum AI ko train karte waqt jaan boojh kar robot ko "pareshan" karte hain.
+
+**Kya Randomize Karein?**
+1.  **Wazan**: Kabhi 10% zyada, kabhi kam.
+2.  **Friction**: Kabhi zameen chikni, kabhi khurduri.
+3.  **Motor Power**: Kabhi motors kamzor, kabhi taqatwar.
+4.  **Latency**: Signal ko thora late karein.
+
+Agar AI in sab maslon ke bawajood Simulation mein chal sakti hai, to wo Asli dunya mein bhi chal le gi. Asli dunya us ke liye bas ek aur "pareshani" hogi.
+
+### Optimization (TensorRT)
+Jetson par code dalne se pehle:
+1.  **TensorRT**: Apne AI model ko `.pt` se `.engine` mein badlein. Is se speed 10 guna barh jati hai.
+2.  **Time Sync**: Yaqeen karlein ke robot ki ghari (clock) theek hai. Agar waqt ghalat hoga to sensor data reject ho jaye ga.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the 'Sim-to-Real Gap'?",
+    options: [
+      "The time it takes to upload code",
+      "The difference in performance between the simulation and the physical world due to physics/sensor inaccuracies",
+      "The price difference between the simulator and the robot",
+      "A gap in the floor"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "What is 'Dynamics Randomization'?",
+    options: [
+      "Changing the robot's color randomly",
+      "Varying physics parameters (mass, friction) during training to make the AI robust",
+      "Driving the robot in random circles",
+      "Using random numbers for passwords"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Jetson par AI model ko tez karne ke liye hum kis format mein convert karte hain?",
+    options: [
+      "MP3",
+      "JPEG",
+      "TensorRT (.engine)",
+      "PDF"
+    ],
+    correctAnswer: 2
+  }
+]} />

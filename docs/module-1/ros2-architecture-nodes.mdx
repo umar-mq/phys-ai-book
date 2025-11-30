@@ -1,0 +1,326 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 1.2 ROS 2 Architecture & The Node System
+
+<Personalization level="novice" language="english">
+
+## The Building Blocks of a Robot
+
+**What is a Node?**
+
+Imagine a robot as a large company. In a company, you don't have one person doing everything (cleaning, accounting, manufacturing, selling). You have specialized workers.
+In ROS 2, these specialized workers are called **Nodes**.
+
+*   **Node A (Driver)**: Reads data from the camera.
+*   **Node B (Brain)**: Looks at the image and decides "Turn Left".
+*   **Node C (Motor)**: Receives the command "Turn Left" and spins the wheels.
+
+Each Node is a small, independent program. They run separately. This is great because if the Camera Node crashes, the Motor Node can still stop the robot so it doesn't crash into a wall.
+
+**The "Graph"**
+When you have many nodes talking to each other, they form a network called the **ROS Graph**.
+
+### Creating Your First Node in Python
+
+We will write a simple Python script that creates a Node.
+
+#### Step 1: Create a Package
+ROS 2 code is organized into **Packages**. A package is just a folder that contains your code and some information about it.
+
+```bash
+# Go to your workspace source folder (create one if you haven't)
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+
+# Create a python package named 'my_robot_controller'
+ros2 pkg create my_robot_controller --build-type ament_python --dependencies rclpy
+```
+
+#### Step 2: Write the Node Code
+Navigate to `~/ros2_ws/src/my_robot_controller/my_robot_controller/` and create a file named `first_node.py`.
+
+```python
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+
+class MyFirstNode(Node):
+    def __init__(self):
+        # We name the node "test_node"
+        super().__init__("test_node")
+        self.get_logger().info("Hello from ROS 2!")
+        self.create_timer(1.0, self.timer_callback)
+
+    def timer_callback(self):
+        self.get_logger().info("I am alive!")
+
+def main(args=None):
+    # Initialize ROS 2 communication
+    rclpy.init(args=args)
+    
+    # Create the node
+    node = MyFirstNode()
+    
+    # Keep the node running/spinning
+    rclpy.spin(node)
+    
+    # Shutdown
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+#### Step 3: Register the Node
+Open `setup.py` in the package folder. Find the `entry_points` section and add your node:
+
+```python
+entry_points={
+    'console_scripts': [
+        'test_node = my_robot_controller.first_node:main',
+    ],
+},
+```
+
+#### Step 4: Build and Run
+Go back to the root of your workspace (`~/ros2_ws`) and build.
+
+```bash
+colcon build
+source install/setup.bash
+ros2 run my_robot_controller test_node
+```
+
+You should see "Hello from ROS 2!" and then "I am alive!" printing every second. You just built your first robot component!
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Architectural Internals: Executors & Contexts
+
+**The Execution Model**
+
+In ROS 1, nodes were often single processes. In ROS 2, while the abstraction remains, the execution model is far more flexible. You must understand **Executors** to manage concurrency, especially for a Humanoid Robot where the balance controller cannot be blocked by the vision logger.
+
+### 1. rclpy vs rclcpp
+Under the hood, ROS 2 is built on `rcl` (ROS Client Library) written in C.
+*   `rclpy`: Python bindings. Great for prototyping and high-level logic (e.g., LLM integration).
+*   `rclcpp`: C++ bindings. Mandatory for real-time controls (e.g., Inverse Kinematics).
+*   **Performance Note**: In Python, the GIL (Global Interpreter Lock) can bottleneck high-frequency topics (>1kHz). For the "Nervous System" (motors), use C++. For the "Brain" (decisions), Python is acceptable.
+
+### 2. Executors
+An **Executor** coordinates the execution of callbacks (timers, subscriptions).
+
+*   **SingleThreadedExecutor (Default)**: Callbacks are executed sequentially. If your `image_callback` takes 500ms to process a frame, your `safety_stop_callback` will be delayed by 500ms. **Danger for Physical AI.**
+*   **MultiThreadedExecutor**: Runs callbacks in a pool of threads. Allows parallel processing but introduces race conditions.
+
+**Example: Using MultiThreadedExecutor**
+
+```python
+from rclpy.executors import MultiThreadedExecutor
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = MyComplexNode()
+    
+    # Use multiple threads to prevent blocking
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+    
+    try:
+        executor.spin()
+    finally:
+        executor.shutdown()
+        node.destroy_node()
+        rclpy.shutdown()
+```
+
+### 3. Callback Groups
+To control specifically *which* callbacks can run in parallel, use **Callback Groups**.
+*   `MutuallyExclusiveCallbackGroup`: Only one callback from this group runs at a time.
+*   `ReentrantCallbackGroup`: Multiple callbacks from this group can run concurrently.
+
+**Use Case**: The "Balance" timer should be in a separate group from the "Logging" timer so that writing to a log file never delays the balance calculation.
+
+### 4. Component Nodes (Composition)
+Creating a process for every node consumes significant OS resources (Context Switching).
+ROS 2 supports **Composition**: loading multiple nodes into a *single* process container. This enables **Zero-Copy** communication (pointers instead of serialization), which is critical when passing 4K images between Perception and SLAM nodes.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## ROS 2 Ka Dhaancha (Architecture) Aur Nodes
+
+**Node Kya Hai?**
+
+Sochiye ke ek robot ek factory ki tarah hai. Factory mein ek hi banda sab kaam nahi karta. Har kaam ke liye alag banda hota hai.
+ROS 2 mein in 'kaam karne walon' ko **Nodes** kehte hain.
+
+*   **Node A (Aankh)**: Camera se tasveer leta hai.
+*   **Node B (Dimagh)**: Tasveer dekh kar faisla karta hai ke "Baayein muro".
+*   **Node C (Haath/Paon)**: Hukum sunta hai aur motor chalata hai.
+
+Har Node ek alag program hai. Iska faida yeh hai ke agar Camera wala Node kharab ho jaye (crash kar jaye), to Motor wala Node chalta rahega aur robot ko rok lega taake wo takraye nahi.
+
+**ROS Graph**
+Jab bohat saare Nodes apas mein baat karte hain, to wo ek jaal banate hain jise **Graph** kehte hain.
+
+### Python Mein Pehla Node Banana
+
+Hum Python mein ek chota sa Node banayenge.
+
+#### Qadam 1: Package Banana
+ROS 2 mein code ko **Packages** mein rakha jata hai. Package bas ek folder hai jisme aapka code hota hai.
+
+```bash
+# Apne workspace ke folder mein jayein
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+
+# 'my_robot_controller' ke naam se package banayein
+ros2 pkg create my_robot_controller --build-type ament_python --dependencies rclpy
+```
+
+#### Qadam 2: Code Likhna
+Folder `~/ros2_ws/src/my_robot_controller/my_robot_controller/` mein jayein aur `first_node.py` ke naam se file banayein.
+
+```python
+#!/usr/bin/env python3
+import rclpy
+from rclpy.node import Node
+
+class MyFirstNode(Node):
+    def __init__(self):
+        # Node ka naam "test_node" rakha
+        super().__init__("test_node")
+        self.get_logger().info("ROS 2 ki dunya se salaam!")
+        self.create_timer(1.0, self.timer_callback)
+
+    def timer_callback(self):
+        self.get_logger().info("Main zinda hoon!")
+
+def main(args=None):
+    # ROS 2 shuru karein
+    rclpy.init(args=args)
+    
+    # Node banayein
+    node = MyFirstNode()
+    
+    # Node ko chalate rahein (spin)
+    rclpy.spin(node)
+    
+    # Band karein
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+```
+
+#### Qadam 3: Register Karna
+Package folder mein `setup.py` file kholein. `entry_points` dhoondein aur wahan apna node add karein:
+
+```python
+entry_points={
+    'console_scripts': [
+        'test_node = my_robot_controller.first_node:main',
+    ],
+},
+```
+
+#### Qadam 4: Build Aur Run
+Wapis main folder (`~/ros2_ws`) mein jayein aur build karein.
+
+```bash
+colcon build
+source install/setup.bash
+ros2 run my_robot_controller test_node
+```
+
+Aap ko screen par "Main zinda hoon!" likha hua nazar aayega. Aap ne robot ka pehla hissa bana liya!
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Node Architecture Ki Gehrai: Executors
+
+**Execution Model Samajhna**
+
+ROS 1 mein har node aksar ek alag process hota tha. ROS 2 mein humein **Executors** ka control milta hai. Yeh samajhna bohat zaroori hai, khaas taur par Humanoid Robot ke liye. Agar aap ka balance controller zara sa bhi late hua, to robot gir jayega.
+
+### 1. rclpy vs rclcpp
+ROS 2 asal mein C language (`rcl`) par bana hai.
+*   `rclpy`: Python wrapper hai. Logic aur AI (LLMs) ke liye behtareen hai.
+*   `rclcpp`: C++ wrapper hai. Real-time control (jaise motors) ke liye lazmi hai.
+*   **Performance**: Python mein GIL (Global Interpreter Lock) hota hai jo tez speed (1000Hz) par rukawat dalta hai. Isliye "Brain" ke liye Python use karein, magar "Reflexes" ke liye C++ use karein.
+
+### 2. Executors
+**Executor** faisla karta hai ke callbacks (jaise timer function) kab chalenge.
+
+*   **SingleThreadedExecutor (Default)**: Sab kaam line mein (queue) hota hai. Agar aap ka `image_processing` function 500ms leta hai, to aap ka `emergency_stop` function bhi 500ms late ho jayega. **Yeh Physical AI ke liye khatarnaak hai.**
+*   **MultiThreadedExecutor**: Callbacks ko alag alag threads mein chalata hai. Is se parallel processing hoti hai.
+
+**Misal: MultiThreadedExecutor**
+
+```python
+from rclpy.executors import MultiThreadedExecutor
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = MyComplexNode()
+    
+    # Blocking se bachne ke liye multiple threads
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+    
+    try:
+        executor.spin()
+    finally:
+        executor.shutdown()
+        node.destroy_node()
+        rclpy.shutdown()
+```
+
+### 3. Callback Groups
+Agar aap chahte hain ke kuch kaam parallel hon aur kuch nahi, to **Callback Groups** use karein.
+*   `MutuallyExclusiveCallbackGroup`: Is group ka sirf ek callback ek waqt mein chalega.
+*   `ReentrantCallbackGroup`: Is group ke callbacks ek sath chal sakte hain.
+
+**Istemal**: Robot ka "Balance Timer" alag group mein hona chahiye aur "Data Logging" alag group mein. Taake data save karte waqt robot ka balance na bigray.
+
+### 4. Composition (Node Ko Jorna)
+Har node ke liye alag process banane se computer ki RAM aur CPU zaya hoti hai.
+ROS 2 **Composition** support karta hai, jahan hum ek hi process mein kayi nodes load karte hain. Is se **Zero-Copy** communication mumkin hoti hai (yani data copy nahi hota, sirf pointer pass hota hai), jo ke vision processing ke liye bohat zaroori hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What function handles the continuous execution of a node in a script?",
+    options: ["rclpy.run()", "rclpy.spin()", "rclpy.start()", "rclpy.execute()"],
+    correctAnswer: 1
+  },
+  {
+    question: "Why might you use a MultiThreadedExecutor in a humanoid robot?",
+    options: [
+      "To make the code look more complex",
+      "To ensure long-running tasks (like vision) do not block critical safety reflexes",
+      "To use less memory",
+      "It is the only way to run ROS 2"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar Camera node crash ho jaye, to Motor node ka kya hoga?",
+    options: [
+      "Wo bhi crash ho jaye ga",
+      "Pura computer band ho jaye ga",
+      "Wo chalta rahe ga kyunke nodes azad (independent) hain",
+      "Robot khud bakhud aag pakar le ga"
+    ],
+    correctAnswer: 2
+  }
+]} />

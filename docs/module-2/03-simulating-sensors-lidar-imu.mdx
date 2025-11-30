@@ -1,0 +1,236 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 2.3 Creating Eyes & Ears: Simulating Sensors
+
+<Personalization level="novice" language="english">
+
+## Giving the Robot Senses
+
+A robot needs to see and feel. In simulation, we fake these sensors.
+We will add two critical sensors:
+1.  **LiDAR (Light Detection and Ranging)**: Lasers that measure distance to walls.
+2.  **IMU (Inertial Measurement Unit)**: Measures balance (gravity and rotation).
+
+### Adding a LiDAR
+
+In Gazebo, sensors are plugins attached to links.
+Edit your robot's SDF/URDF file.
+
+```xml
+<link name="lidar_link">
+  <visual>...</visual>
+  <sensor name="lidar" type="gpu_lidar">
+    <pose>0 0 0 0 0 0</pose>
+    <topic>scan</topic> <!-- ROS Topic Name -->
+    <update_rate>10</update_rate> <!-- Hz -->
+    <ray>
+      <scan>
+        <horizontal>
+          <samples>360</samples> <!-- 360 degrees -->
+          <resolution>1</resolution>
+          <min_angle>-3.14</min_angle>
+          <max_angle>3.14</max_angle>
+        </horizontal>
+      </scan>
+      <range>
+        <min>0.08</min>
+        <max>10.0</max>
+      </range>
+    </ray>
+    <always_on>1</always_on>
+    <visualize>true</visualize>
+  </sensor>
+</link>
+```
+*   **visualize=true**: Shows blue laser lines in the simulator. Good for debugging.
+*   **gpu_lidar**: Uses your graphics card. Much faster than CPU lidar.
+
+### Adding an IMU
+
+Without an IMU, a Humanoid robot cannot balance.
+
+```xml
+<link name="imu_link">
+  <sensor name="imu_sensor" type="imu">
+    <always_on>1</always_on>
+    <update_rate>100</update_rate> <!-- Fast update for balance -->
+    <topic>imu/data</topic>
+  </sensor>
+</link>
+```
+
+### Viewing the Data
+1.  Run the simulation.
+2.  Bridge the topics to ROS 2 (using `ros_gz_bridge`).
+3.  Open `rviz2`.
+4.  Add **LaserScan** display. You should see red dots outlining the walls!
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Sensor Noise Models & Realism
+
+**The "Perfect Sensor" Trap**
+
+In simulation, a LiDAR returns exactly `10.000m`. In reality, it returns `10.02m`, then `9.98m`, then `NULL`.
+If you train your AI on perfect data, it will fail in the real world (**Sim-to-Real Gap**).
+We must inject **Gaussian Noise**.
+
+### Modeling Gaussian Noise
+
+In the SDF sensor definition:
+```xml
+<ray>
+  <noise>
+    <type>gaussian</type>
+    <mean>0.0</mean>
+    <stddev>0.01</stddev> <!-- 1cm error -->
+  </noise>
+</ray>
+```
+This adds random jitter to every reading.
+
+### IMU Bias and Drift
+Real IMUs are terrible. They drift.
+*   **Bias**: When standing still, it reports velocity = 0.01 m/s. Over 1 minute, the robot thinks it moved 0.6 meters!
+*   **White Noise**: Random spikes.
+
+To simulate a low-cost MEMS IMU (like the BNO055 used in our kit), consult the datasheet for the `noise_density` and `random_walk` parameters and map them to Gazebo's noise block.
+
+### Depth Cameras (RGB-D)
+Simulating an Intel RealSense.
+*   **Type**: `depth_camera` or `rgbd_camera`.
+*   **Compute Cost**: This renders the scene a second time (or third time for stereo). Be careful with resolution.
+    *   320x240 @ 30Hz is often enough for navigation and runs 4x faster than 640x480.
+
+**The Optical Frame Convention**
+Standard ROS camera frames follow: Z-forward, X-right, Y-down.
+Standard Gazebo frames follow: X-forward, Y-left, Z-up.
+*   *Solution*: You must add an intermediate link `<link name="camera_optical_frame">` rotated by `-pi/2` on Roll and `+pi/2` on Yaw to align the coordinate systems.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Robot Ki Aankhein Aur Kaan
+
+**Hawaas (Senses) Paida Karna**
+
+Robot ko dekhne aur mehsoos karne ki zaroorat hai. Simulation mein hum naqli sensors banate hain.
+Do sab se ahem sensors:
+1.  **LiDAR**: Laser jo faasla naapti hai (Deewaron se bachne ke liye).
+2.  **IMU**: Jo balance naapta hai (Gravity aur ghoomna).
+
+### LiDAR Lagana
+
+Gazebo mein sensors 'Plugin' hotay hain.
+Apne robot ki file mein yeh code shamil karein:
+
+```xml
+<link name="lidar_link">
+  <sensor name="lidar" type="gpu_lidar">
+    <topic>scan</topic> <!-- ROS Topic ka naam -->
+    <update_rate>10</update_rate> <!-- 1 second mein 10 baar -->
+    <ray>
+      <scan>
+        <horizontal>
+          <samples>360</samples> <!-- Pura gol ghumega -->
+        </horizontal>
+      </scan>
+      <range>
+        <min>0.08</min> <!-- Is se qareeb andha hai -->
+        <max>10.0</max> <!-- Is se door andha hai -->
+      </range>
+    </ray>
+    <visualize>true</visualize> <!-- Neeli rays dikhao -->
+  </sensor>
+</link>
+```
+*   **gpu_lidar**: Hum graphics card use karenge taake computer slow na ho.
+
+### IMU Lagana
+
+IMU ke baghair Humanoid robot khara nahi ho sakta.
+
+```xml
+<link name="imu_link">
+  <sensor name="imu_sensor" type="imu">
+    <update_rate>100</update_rate> <!-- Balance ke liye tez chahiye -->
+    <topic>imu/data</topic>
+  </sensor>
+</link>
+```
+
+### Data Dekhna
+1.  Simulation chalayein.
+2.  Bridge on karein.
+3.  `rviz2` kholein aur **LaserScan** add karein. Aap ko deewaron ki outline nazar aayegi.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Sensor Noise (Shor) Aur Asliyat
+
+**"Perfect Sensor" Ka Dhoka**
+
+Simulation mein LiDAR bilkul sahi `10.000m` batata hai. Haqeeqat mein, wo `10.02m` ya `9.98m` bataye ga.
+Agar aap apni AI ko perfect data par train karenge, to asli dunya mein wo fail ho jaye gi.
+Humein jaan boojh kar data mein ghalti (**Noise**) daalni parti hai.
+
+### Gaussian Noise
+
+SDF file mein hum noise add karte hain:
+```xml
+<ray>
+  <noise>
+    <type>gaussian</type>
+    <mean>0.0</mean>
+    <stddev>0.01</stddev> <!-- 1cm ki ghalti -->
+  </noise>
+</ray>
+```
+Is se har reading thori si upar neeche ho jati hai.
+
+### IMU Bias (Jhoot Bolna)
+Asli IMU (sastay wale) hamesha jhoot bolte hain.
+*   **Bias**: Jab robot ruka hua hai, sensor kehta hai "main chal raha hoon". Agar aap ne isay fix na kiya, to robot khud bakhud gir jaye ga.
+*   Datasheet parh kar `noise_density` ki values simulation mein daalna zaroori hai.
+
+### Optical Frame Ka Masla
+ROS mein camera ka "Aagay" **Z-axis** hota hai.
+Gazebo mein "Aagay" **X-axis** hota hai.
+Agar aap isay theek nahi karenge, to robot ko zameen asmaan mein nazar aayegi.
+*   *Hal*: Ek naya link banayein `camera_optical_frame` aur usay 90 degree ghuma dein taake dono systems match ho jayein.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "Why do we intentionally add 'Noise' to simulated sensors?",
+    options: [
+      "To save memory",
+      "To make the simulation look cooler",
+      "To prepare the AI for the imperfections of real-world hardware",
+      "It is a bug in Gazebo"
+    ],
+    correctAnswer: 2
+  },
+  {
+    question: "What is the primary advantage of 'gpu_lidar' over standard 'lidar'?",
+    options: ["It is more colorful", "It calculates rays using the GPU, drastically improving performance", "It is cheaper", "It works in the dark"],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: ROS Camera standard mein 'Aagay' (Forward) kaunsa axis hota hai?",
+    options: [
+      "X-axis",
+      "Y-axis",
+      "Z-axis",
+      "Koi bhi nahi"
+    ],
+    correctAnswer: 2
+  }
+]} />

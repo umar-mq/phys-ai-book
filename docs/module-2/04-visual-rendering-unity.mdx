@@ -1,0 +1,177 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 2.4 High-Fidelity Visualization: Unity Engine
+
+<Personalization level="novice" language="english">
+
+## Why Unity? (Physics vs. Graphics)
+
+**The Difference Between Gazebo and Unity**
+
+You might ask: *"We just learned Gazebo. Why do we need Unity?"*
+*   **Gazebo** is a scientist. It is excellent at math, friction, and gravity ($F=ma$). But the world looks like a cartoon from the 1990s.
+*   **Unity** is an artist. It is a game engine used to make modern video games. It handles lighting, shadows, and textures beautifully.
+
+**The "Sim-to-Real" Visual Gap**
+If you want to train an AI to "See" a cup, Gazebo is not good enough. The AI will learn to recognize a *cartoon cup*. When you show it a *real cup* with shiny reflections and shadows, the AI will fail.
+We use Unity to generate **Photorealistic** images so the AI learns to see the real world.
+
+### Setting Up Unity for Robotics
+
+1.  **Install Unity Hub**: Download from the official website.
+2.  **Install Editor**: We recommend **2022.3 LTS** (Long Term Support). "LTS" means it is stable and won't change every week.
+3.  **Create Project**: Choose "3D (URP)".
+    *   *URP (Universal Render Pipeline)*: Optimized for speed. Good for simulating sensors.
+    *   *HDRP (High Definition Render Pipeline)*: Best graphics, but requires a very powerful PC.
+
+### The Unity Interface
+
+*   **Scene View (Center)**: Where you build the world.
+*   **Game View**: What the "Camera" sees.
+*   **Hierarchy (Left)**: List of objects (GameObjects).
+*   **Inspector (Right)**: Properties of the selected object (Position, Color, Scripts).
+
+**Rigidbodies and Colliders**
+Just like Gazebo, Unity needs to know physics properties.
+1.  Create a Cube: `Right Click > 3D Object > Cube`.
+2.  Add Physics: Click `Add Component` -> `Rigidbody`.
+    *   Now the cube has mass and gravity.
+3.  **Collider**: The cube already has a `Box Collider`. This is the "solid" part. Without it, the cube falls through the floor (ghost mode).
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Rendering Pipelines & Sensor Simulation
+
+**Ray Tracing and Determinism**
+
+In Physical AI, visual fidelity translates directly to perception network performance.
+**Standard Rasterization** (what video games use) approximates light.
+**Ray Tracing** (what Isaac Sim and Unity HDRP use) simulates physical photons bouncing off surfaces.
+*   *Implication*: Transparent objects (glass cups) and reflective surfaces (mirrors) are invisible to standard LIDAR/Cameras in rasterization pipelines. Ray Tracing is mandatory for manipulation tasks involving glass or water.
+
+### Unity Architecture for Robotics
+
+Unity uses a **Component-based** architecture similar to ECS but strictly bound to `GameObjects` and `MonoBehaviours` (C# scripts).
+
+**The Render Loop**
+Unity's `Update()` loop runs once per frame.
+Unity's `FixedUpdate()` loop runs in sync with the physics engine (PhysX).
+*   **Critical Rule**: All robot control logic (forces/torques) MUST happen in `FixedUpdate()`. If you apply torque in `Update()`, the robot's behavior will depend on the frame rate (FPS). A robot running at 60FPS will behave differently than one at 30FPS. This is unacceptable for simulation.
+
+### Simulating Sensors in Unity
+
+**Camera (RGB)**
+Unity's standard Camera component is the RGB sensor.
+To send this to ROS, we read the `RenderTexture` from the GPU memory.
+*   *Optimization*: Use `AsyncGPUReadback`. Do not block the main thread waiting for the image to copy from VRAM to RAM.
+
+**LIDAR (Raycasting)**
+We use `Physics.Raycast`.
+```csharp
+// C# Script for simple LIDAR
+void FixedUpdate() {
+    RaycastHit hit;
+    if (Physics.Raycast(transform.position, transform.forward, out hit, 10.0f)) {
+        float distance = hit.distance;
+        // Send 'distance' to ROS
+    }
+}
+```
+*   *Performance*: For a 360-degree LIDAR (thousands of points), iterating standard Raycasts in C# is too slow. We use the **Unity Jobs System** and **Burst Compiler** to parallelize raycasts across CPU cores.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Unity Engine: Behtareen Graphics
+
+**Unity Kyun?**
+
+Aap sochenge: *"Hum ne Gazebo seekh to liya. Ab Unity kyun?"*
+*   **Gazebo** ek scientist hai. Wo hisab kitaab (Physics) mein acha hai, magar cheezain cartoon jaisi dikhti hain.
+*   **Unity** ek artist hai. Yeh video games banane ke liye use hota hai. Is mein roshni (lighting) aur parchai (shadows) bilkul asli lagti hain.
+
+**Asliyat Ka Farq**
+Agar aap AI ko sikhana chahte hain ke "Cup kaisa dikhta hai", to Gazebo kaafi nahi hai. AI Gazebo mein "Cartoon Cup" dekh kar seekh le gi, magar jab aap usay "Asli Cup" dikhayenge (jis par roshni chamak rahi ho), to AI confuse ho jaye gi.
+Hum Unity is liye use karte hain taake **Photo-realistic** (tasveer jaisi) dunya bana sakein.
+
+### Unity Install Karna
+
+1.  **Unity Hub** download karein.
+2.  **Unity Editor 2022.3 LTS** install karein. (LTS ka matlab hai ye version stable hai).
+3.  **Project Banayein**: "3D (URP)" select karein.
+
+### Unity Ka Interface
+
+*   **Scene View**: Jahan aap dunya banate hain.
+*   **Game View**: Jo Camera dekh raha hai.
+*   **Inspector**: Jahan aap kisi cheez ki settings (Rang, Size) badalte hain.
+
+**Physics Lagana**
+Gazebo ki tarah Unity mein bhi physics batani parti hai.
+1.  Cube banayein: `Right Click > 3D Object > Cube`.
+2.  **Rigidbody**: `Add Component` par click karein aur `Rigidbody` add karein. Ab is cube mein wazan (mass) aa gaya hai.
+3.  **Collider**: Cube ke paas pehle se `Box Collider` hota hai. Ye wo hissa hai jo takrata hai. Agar ye na ho, to cube zameen ke aar paar gir jaye ga.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Rendering Pipelines aur Sensors
+
+**Asli Roshni (Ray Tracing)**
+
+Physical AI mein, jitni achi tasveer hogi, utna acha robot seekhe ga.
+Video games aam taur par **Rasterization** use karte hain (jugaar wali roshni).
+Hum **Ray Tracing** use karte hain. Is mein computer roshni ki ek ek kiran (ray) ko calculate karta hai.
+*   *Kyun Zaroori Hai?* Agar robot ko sheeshay ka glass uthana hai, to Rasterization mein sheesha nazar hi nahi aayega. Ray Tracing mein sheeshay ki chamak nazar aati hai.
+
+**Unity Ka Loop System**
+Unity mein do loops hotay hain:
+1.  `Update()`: Ye graphics ke liye hai. (Variable speed).
+2.  `FixedUpdate()`: Ye physics ke liye hai. (Fixed speed).
+*   **Usool**: Robot ka sara control code (Force lagana) hamesha `FixedUpdate()` mein likhein. Agar aap `Update()` mein likhenge, to robot ka behavior frame rate par depend karega (yani tez computer par robot alag chalega aur slow par alag).
+
+### Sensors Banana
+
+**Camera**
+Unity ka aam Camera hi hamara robot sensor hai.
+Hum GPU ki memory se tasveer parh kar ROS ko bhejte hain.
+*   *Tip*: Tasveer copy karte waqt computer ko hang na hone dein (`AsyncGPUReadback` use karein).
+
+**LIDAR**
+Lidar banane ke liye hum laser phenkte hain (`Physics.Raycast`).
+Agar aap ko 360-degree Lidar banana hai (hazaron lasers), to saday tareeqay se computer slow ho jaye ga. Hum **Unity Jobs System** use karte hain taake saari CPU cores ek sath kaam karein.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "Why do we use Unity instead of just Gazebo for 'Vision' training?",
+    options: [
+      "Unity is cheaper",
+      "Gazebo cannot run on Windows",
+      "Unity provides photorealistic rendering which reduces the Sim-to-Real visual gap",
+      "Unity has better physics"
+    ],
+    correctAnswer: 2
+  },
+  {
+    question: "In Unity, which function should be used for applying physical forces to a robot?",
+    options: ["Update()", "FixedUpdate()", "LateUpdate()", "Awake()"],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar aap Unity mein 'Rigidbody' add nahi karte to kya hoga?",
+    options: [
+      "Object ka rang badal jaye ga",
+      "Object par gravity asar nahi kare gi (hawa mein ruka rahe ga)",
+      "Object ghaib ho jaye ga",
+      "Game crash ho jaye gi"
+    ],
+    correctAnswer: 1
+  }
+]} />

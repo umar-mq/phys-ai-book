@@ -1,1 +1,152 @@
-# Capstone Introduction
+import Personalization from '@site/src/components/Personalization';
+
+# Capstone Project Guide: The Physical AI Agent
+
+<Personalization level="novice" language="english">
+
+## Welcome to the Finale
+
+Congratulations on reaching the end of the Physical AI course.
+This Capstone Project is not just a test; it is a portfolio piece. It demonstrates that you can integrate:
+1.  **Mechanical Simulation** (Isaac Sim)
+2.  **Robot Middleware** (ROS 2)
+3.  **Generative AI** (LLMs & VLMs)
+
+### The Mission
+**"Design and deploy an autonomous agent capable of Semantic Exploration and Manipulation."**
+
+In simple terms: The robot must explore a room, find objects requested by a human, and interact with them.
+
+### Hardware Tracks
+You can choose one of two tracks depending on your budget:
+
+**Track A: The Simulation Specialist (Pure Software)**
+*   **Requirement**: A powerful PC (RTX GPU).
+*   **Task**: Create a highly complex environment in Isaac Sim (e.g., a hospital room). The robot (NurseBot) must find medicine and bring it to the patient bed.
+*   **Bonus**: Add "dynamic actors" (people walking) that the robot must avoid.
+
+**Track B: The Hardware Hacker (Sim-to-Real)**
+*   **Requirement**: Jetson Orin Nano + Robot Arm/Mobile Base.
+*   **Task**: A simpler environment (Tabletop). The robot must sort objects (Red blocks to Red bin, Blue blocks to Blue bin) based on voice commands.
+*   **Focus**: Dealing with real-world noise and lighting.
+
+### Submission Requirements
+1.  **GitHub Repository**:
+    *   `src/`: Your ROS 2 packages.
+    *   `launch/`: One main launch file `capstone.launch.py`.
+    *   `docs/`: Architecture diagram (Mermaid/Draw.io).
+2.  **Video Demo (3 Minutes)**:
+    *   Show the Voice Command.
+    *   Show the "Thinking Process" (Terminal output of LLM).
+    *   Show the Execution.
+    *   Show one "Failure & Recovery" case (e.g., move the object while the robot is reaching).
+
+### Grading Rubric
+| Component | Points | Description |
+| :--- | :--- | :--- |
+| **Architecture** | 30 | Clean ROS 2 graph, Proper usage of Actions/Services, TF Tree correctness. |
+| **AI Integration** | 30 | Successful use of LLM for planning and VLM/YOLO for vision. |
+| **Simulation** | 20 | Custom USD environment, realistic physics (no ghosting). |
+| **Robustness** | 20 | Does it crash if I turn off the lights? Does it recover from empty grasps? |
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Advanced Capstone Specifications
+
+**Architecture Pattern**
+For the Expert track, we expect a **Hybrid Deliberative-Reactive Architecture**.
+*   **Deliberative Layer (The Captain)**: LLM (Llama-3). Runs at 0.1Hz. Decides high-level goals.
+*   **Reactive Layer (The Pilot)**: Nav2/MoveIt. Runs at 20-100Hz. Handles obstacle avoidance and visual servoing.
+*   **The Bridge**: A Behavior Tree (BehaviorTree.CPP or py_trees) that manages the switching.
+
+**The "Novelty" Requirement**
+To get an A+, you must implement one feature not explicitly taught in the tutorials:
+*   **Mapping**: 3D Octomap or semantic mapping (labeling the map with "Kitchen", "Lounge").
+*   **Learning**: Use Reinforcement Learning (Isaac Gym) for the grasping policy instead of standard MoveIt planning.
+*   **Voice**: Bi-directional voice. The robot should speak back: *"I am having trouble finding the apple, can you give me a hint?"* (Text-to-Speech).
+
+### Recommended Tech Stack
+*   **Planner**: LangChain (Python) or Nav2 Behavior Trees (C++).
+*   **Vision**: NanoLLaVA (Jetson) or GPT-4o (Cloud).
+*   **Control**: ROS 2 Control with hardware interfaces.
+*   **Sim**: NVIDIA Isaac Sim 2023.1+.
+
+### Troubleshooting the "Valley of Death"
+The "Valley of Death" in robotics is the integration phase.
+*   *Issue*: "My LLM takes 5 seconds to reply, and my robot crashes in the meantime."
+*   *Solution*: Run the LLM in a separate thread (Async). Ensure the Reactive Layer (Collision Avoidance) is *always* active, even while the Brain is thinking. **Safety Monitor** nodes are mandatory.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Aakhri Project: Physical AI Agent
+
+**Khush Aamdeed**
+
+Mubarak ho! Aap Physical AI course ke aakhir tak pohnch gaye.
+Yeh Capstone Project sirf imtehan nahi, ye aap ka portfolio hai. Ye sabit karega ke aap:
+1.  **Simulation** (Isaac Sim)
+2.  **Robot Software** (ROS 2)
+3.  **Artificial Intelligence** (LLMs)
+sab ko mila kar chala saktay hain.
+
+### Mission
+**"Ek khud-mukhtar robot banayein jo baat sunay, samjhay, aur kaam kare."**
+Robot ko ek kamray mein cheezain dhoondni hain aur unhein uthana hai.
+
+### Do Raaste (Tracks)
+
+**Track A: Software Specialist (Simulation)**
+*   **Zaroorat**: Taqatwar PC (RTX GPU).
+*   **Kaam**: Isaac Sim mein mushkil dunya banayein (Hospital). Robot (Nurse) ko dawai dhoond kar mareez tak le jana hai.
+*   **Bonus**: Beech mein log chal rahe hon jin se bachna hai.
+
+**Track B: Hardware Hacker (Asli Robot)**
+*   **Zaroorat**: Jetson Orin + Robot Arm/Gari.
+*   **Kaam**: Table par cheezain sort karni hain. (Laal cheezain laal dabbay mein).
+*   **Focus**: Asli dunya ke maslon (Roshni, Shor) ko hal karna.
+
+### Jama Karwane Ka Tareeqa (Submission)
+1.  **GitHub Code**:
+    *   Aap ka sara code.
+    *   Launch file.
+    *   Architecture ki tasveer (Diagram).
+2.  **Video Demo (3 Minute)**:
+    *   Hukum dein (Awaaz).
+    *   Robot ki soch dikhayein (Screen par text).
+    *   Robot ko kaam karte dikhayein.
+    *   Ek baar robot ko jaan boojh kar pareshan karein (cheez hata dein) aur dekhein wo kaise theek karta hai.
+
+### Number Kis Ke Hain? (Grading)
+*   **Architecture (30)**: Code saaf suthra ho.
+*   **AI (30)**: LLM aur Vision ka sahi istemal.
+*   **Simulation (20)**: Dunya asli lagay.
+*   **Mazbooti (20)**: Kya robot choti moti ghaltion se band ho jata hai ya chalta rehta hai?
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Advanced Capstone Specifications
+
+**Architecture Pattern**
+Expert level ke liye humein **Hybrid Architecture** chahiye.
+*   **Captain (Sochne wala)**: LLM. Ye suste mein chalta hai (Dair se jawab deta hai). "Maqsad: Kitchen jao".
+*   **Pilot (Karne wala)**: Nav2. Ye bohat tez chalta hai. "Samne kursi hai, bach kar niklo".
+*   **Bridge**: Behavior Tree jo in dono ko milata hai.
+
+**Extra Number (A+)**
+Koi ek cheez khud se add karein jo hum ne nahi sikhayi:
+*   **Mapping**: Kamray ka naqsha banayein jis par likha ho "Kitchen", "Bedroom".
+*   **Learning**: Haath se pakarne ke liye MoveIt ki jagah Reinforcement Learning use karein.
+*   **Bolna**: Robot wapis jawab de. *"Mujhe seb nahi mil raha, kya aap bata sakte hain kahan hai?"* (Text-to-Speech).
+
+### Maslon Ka Hal (Valley of Death)
+Robotics mein sab se mushkil marhala "Integration" hai (Sab ko jorna).
+*   *Masla*: "Mera LLM sochne mein 5 second laga raha hai, itni dair mein robot deewar mein lag gaya."
+*   *Hal*: LLM ko alag thread mein chalayein. "Pilot" (Safety system) ko hamesha on rakhein. Agar Dimagh soch raha hai, tab bhi Aankhein khuli honi chahiyen taake takkar na ho.
+
+</Personalization>

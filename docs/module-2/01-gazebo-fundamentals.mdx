@@ -1,0 +1,208 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 2.1 Gazebo Fundamentals & The Simulation Loop
+
+<Personalization level="novice" language="english">
+
+## The Robot Playground
+
+**Why do we need a Simulator?**
+
+Building a robot is expensive. If you write code that says "Drive Forward at 100mph" and test it on a real robot, you might break a $10,000 piece of hardware.
+We need a "Video Game" where we can test our robot safely. This is **Gazebo**.
+
+**Gazebo vs. Gazebo Classic**
+*   **Gazebo Classic (Version 11)**: The old standard. Good, but getting old.
+*   **New Gazebo (formerly Ignition)**: The new, modern version. It looks better and simulates physics more accurately.
+In this course, we focus on the modern **Gazebo Fortress/Harmonic**.
+
+### The Interface
+
+When you open Gazebo, you see:
+1.  **The World (Center)**: The 3D view where gravity exists.
+2.  **The Hierarchy (Right)**: A list of everything in the world (Ground plane, Sun, Robot).
+3.  **The Toolbar (Bottom)**: Play, Pause, Step.
+
+**Important Concept: The Simulation Clock**
+In real life, 1 second is always 1 second.
+In Gazebo, time can be:
+*   **Real-time**: 1 sim-second = 1 real-second.
+*   **Slow Motion**: If your computer is slow (or the physics is complex), 1 sim-second might take 5 real-seconds to calculate.
+*   **Fast Forward**: Used for training AI quickly.
+
+### Your First Simulation
+
+Let's spawn a simple shape.
+
+1.  Open a terminal.
+    ```bash
+    ign gazebo empty.sdf
+    ```
+2.  On the right side "Resource Browser", find "Shapes".
+3.  Drag a **Box** into the world.
+4.  Press **Play** (Bottom left).
+5.  You will see the box sit there. Now, pause. Drag the box up into the air. Press Play.
+6.  **It falls!** Gravity is working.
+
+**Connecting ROS 2 to Gazebo**
+We need a bridge so ROS 2 can talk to Gazebo.
+```bash
+sudo apt install ros-humble-ros-gz
+```
+This package translates Gazebo messages (like "I hit a wall") into ROS messages (Topics).
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Architecture: The Entity-Component-System (ECS)
+
+**From Object-Oriented to Data-Oriented**
+
+Old Gazebo (Classic) used a heavy Object-Oriented hierarchy. It was slow and hard to extend.
+New Gazebo uses **ECS (Entity-Component-System)** architecture.
+*   **Entity**: An ID (e.g., `Robot_1`). It has no data, just an ID.
+*   **Component**: Data attached to an ID (e.g., `Pose`, `Geometry`, `Inertial`).
+*   **System**: Logic that runs on entities with specific components (e.g., `PhysicsSystem` looks for anything with `Mass` and applies gravity).
+
+**Why this matters for Physical AI?**
+ECS allows for massive scalability. You can simulate swarms of 100 robots efficiently because the memory is laid out contiguously (better cache coherence).
+
+### Server-Client Separation
+
+Gazebo is split into two processes:
+1.  **gz-server**: Runs the physics loop. No graphics.
+2.  **gz-client (GUI)**: Visualizes the data.
+
+For **Reinforcement Learning (RL)** training, we run in **Headless Mode**. We don't need to *see* the robot to train it; the AI just needs the numbers. This saves GPU resources.
+
+```bash
+# Run server only (Headless) - saves ~40% GPU/CPU
+ign gazebo -s -r empty.sdf
+```
+*   `-s`: Server only.
+*   `-r`: Run immediately (don't start paused).
+
+### The Bridge (ros_gz_bridge)
+
+ROS 2 and Gazebo use different transport layers.
+*   ROS 2 uses **DDS**.
+*   Gazebo uses **Ignition Transport** (Protobufs + ZeroMQ).
+
+The `ros_gz_bridge` is a node that deserializes Ign messages and reserializes them as ROS messages.
+**Performance Bottleneck**: Passing high-res camera images through the bridge is costly. For capstone projects, we recommend using shared memory plugins if available, or lowering the resolution for the ROS side while keeping high-fidelity physics on the Gazebo side.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Robot Ka Khel Ka Maidan: Gazebo
+
+**Simulator Kyun Chahiye?**
+
+Robot banana mehnga kaam hai. Agar aap code likhein "100 ki speed par aage jao" aur asli robot par chala dein, to robot deewar mein lag kar toot jaye ga.
+Humein ek "Video Game" chahiye jahan hum robot ko bina tode test kar sakein. Isay **Gazebo** kehte hain.
+
+**Gazebo vs Classic**
+*   **Classic**: Purana version. Theek hai magar ab retire ho raha hai.
+*   **New Gazebo**: Naya aur jadeed version. Is mein physics zyada asli (realistic) hai.
+
+### Interface (Shakal)
+
+Jab Gazebo khulta hai to aap ko nazar aata hai:
+1.  **World (Beech mein)**: 3D dunya jahan zameen aur gravity hai.
+2.  **Hierarchy (Dayein taraf)**: Har cheez ki list (Sooraj, Zameen, Robot).
+3.  **Toolbar (Neechay)**: Play aur Pause ke buttons.
+
+**Simulation Ka Waqt (Time)**
+Asli dunya mein 1 second hamesha 1 second hota hai.
+Gazebo mein:
+*   **Real-time**: Bilkul asli waqt jaisa.
+*   **Slow Motion**: Agar aap ka computer slow hai, ya robot bohat complex hai, to computer ko hisab karne mein der lagti hai. Simulation slow ho jati hai.
+
+### Pehla Tajurba
+
+Aayein ek dibba (Box) girate hain.
+
+1.  Terminal kholein:
+    ```bash
+    ign gazebo empty.sdf
+    ```
+2.  Right side par "Shapes" dhoondein.
+3.  Ek **Box** ko kheench kar dunya mein dalein.
+4.  **Play** dabayein.
+5.  Ab Pause karein. Box ko hawa mein oopar le jayein. Phir Play karein.
+6.  **Wo gir jaye ga!** Is ka matlab Gravity kaam kar rahi hai.
+
+**ROS 2 aur Gazebo Ka Talluq**
+Humein ek "Pul" (Bridge) chahiye taake ROS 2 aur Gazebo baat kar sakein.
+```bash
+sudo apt install ros-humble-ros-gz
+```
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Architecture: Entity-Component-System (ECS)
+
+**Object-Oriented se Data-Oriented Tak**
+
+Purana Gazebo (Classic) bohat bhari tha. Naya Gazebo **ECS** architecture use karta hai.
+*   **Entity**: Sirf ek ID number (jaise `Robot_1`).
+*   **Component**: Data (jaise `Wazan`, `Position`, `Rang`).
+*   **System**: Logic (jaise `PhysicsSystem` jo dekhta hai ke kis cheez ka wazan hai aur us par gravity lagata hai).
+
+**Physical AI Mein Faida?**
+ECS ki wajah se hum 100 robots ek sath simulate kar sakte hain kyunke computer ki memory behtar tareeqay se istemal hoti hai.
+
+### Server-Client Alag Alag
+
+Gazebo do hisson mein chalta hai:
+1.  **gz-server**: Physics chalata hai. Is ki koi screen nahi hoti.
+2.  **gz-client**: Sirf dikhane (graphics) ke liye hai.
+
+**Headless Mode**
+Jab hum AI ko train karte hain, to humein robot ko dekhne ki zaroorat nahi hoti. Computer ko sirf numbers chahiye. Hum graphic card (GPU) bachane ke liye sirf server chalate hain.
+
+```bash
+# Sirf Server chalana (Graphics ke baghair)
+ign gazebo -s -r empty.sdf
+```
+*   `-s`: Server only.
+*   `-r`: Run immediately (Pause mat karo).
+
+### The Bridge (ros_gz_bridge)
+
+ROS 2 aur Gazebo ki zaban alag hai.
+*   ROS 2 **DDS** use karta hai.
+*   Gazebo **Ignition Transport** use karta hai.
+
+`ros_gz_bridge` ek translator hai.
+**Warning**: Agar aap robot ka camera HD (1080p) set karte hain, to Bridge usay ROS mein convert karne mein slow ho sakta hai. Is bottleneck ka khayal rakhna zaroori hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the command to run Gazebo in 'headless' mode (no GUI)?",
+    options: ["ign gazebo -s", "ign gazebo -g", "ign gazebo --no-gui", "ign gazebo --blind"],
+    correctAnswer: 0
+  },
+  {
+    question: "Which architecture does the modern Gazebo use to manage objects efficiently?",
+    options: ["MVC (Model View Controller)", "ECS (Entity Component System)", "OOP (Object Oriented Programming)", "P2P (Peer to Peer)"],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar simulation mein waqt asli waqt se dheema chal raha ho, to is ki kya wajah ho sakti hai?",
+    options: [
+      "Computer slow hai ya physics calculation mushkil hai",
+      "Internet slow hai",
+      "Robot so raha hai",
+      "Gravity khatam ho gayi hai"
+    ],
+    correctAnswer: 0
+  }
+]} />

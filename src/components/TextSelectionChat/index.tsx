@@ -59,10 +59,7 @@ export default function TextSelectionChat() {
     setLoading(true);
     try {
       // Send selection as context
-      const contextMessage = `Context: "${selection.text}"
-
-Question: ${input}`;
-      const { response: reply } = await ChatService.sendMessage(contextMessage, []);
+      const reply = await ChatService.sendSelectedChat(selection.text, input);
       setResponse(reply);
     } catch (e) {
       setResponse("Sorry, I couldn't process that.");

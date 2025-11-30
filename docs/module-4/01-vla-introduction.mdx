@@ -1,0 +1,152 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 4.1 Vision-Language-Action (VLA) Models
+
+<Personalization level="novice" language="english">
+
+## When Robots Understand English
+
+**The Old Way**
+If you wanted a robot to pick up a red cup, you wrote code:
+`if (object.color == red && object.type == cup) { pick(object); }`
+This is rigid. If you ask "Pick up the thing that holds water", the robot fails.
+
+**The New Way: VLA**
+**Vision-Language-Action** models connect ChatGPT-like brains to robot bodies.
+You can say: *"I am thirsty."*
+The Robot thinks:
+1.  "Thirsty" -> I need water.
+2.  "Water" -> Is usually in a cup or bottle.
+3.  **Vision**: Look for a cup.
+4.  **Action**: Navigate to cup, Pick up cup, Bring to human.
+
+This is the convergence of **LLMs** (Large Language Models) and **Robotics**.
+
+### How it Works (RT-2 / Prism)
+These models take three inputs:
+1.  **Image**: What the robot sees.
+2.  **Text**: What the human said.
+3.  **Robot State**: Where the arm is now.
+
+And output:
+*   **Action Tokens**: Numbers that control the motors (x, y, z, gripper).
+
+In this module, we won't build a VLA from scratch (requires Google-level compute). We will use **OpenAI/LLaMA** for the reasoning ("I need water") and connect it to **ROS 2 actions** for the movement.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Foundation Models for Embodied AI
+
+**From LLMs to VLAs**
+
+Large Language Models (LLMs) like GPT-4 process text.
+Vision-Language Models (VLMs) like CLIP process text and images.
+**VLA (Vision-Language-Action)** models like Google's RT-2 or Stanford's Octo process text+images and output **Control Actions**.
+
+**Tokenization of Action Space**
+How does a Transformer output motor commands?
+We discretize the action space.
+*   $x, y, z$ coordinates are mapped to tokens between 0-255.
+*   The model predicts: `[Move_Arm, 120, 45, 200, Open_Gripper]`.
+*   These tokens are de-tokenized into continuous velocity commands for the robot controller.
+
+### The Modular Approach (VLM + Planner)
+
+Since end-to-end VLAs are heavy to run on edge (Jetson), we often use a modular pipeline in this course:
+1.  **VLM (e.g., LLaVA / NanoLLaVA)**: Scene Description. "There is a red apple on the table."
+2.  **LLM (e.g., Llama-3-8B)**: Planner. Input: "User wants fruit". Output: `[pick_object("apple"), bring_to("user")]`.
+3.  **ROS 2 Action Server**: Executes `pick_object` using MoveIt / Nav2.
+
+This decouples the "Reasoning" (Heavy, slow) from the "Reflexes" (Fast, safety-critical).
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Jab Robot Baat Samajhne Lagay: VLA Models
+
+**Purana Tareeqa**
+Agar aap robot ko kehte "Laal cup uthao", to aap ko code likhna parta tha.
+Agar aap kehte "Wo cheez uthao jis mein paani peetay hain", to robot fail ho jata.
+
+**Naya Tareeqa: VLA**
+**Vision-Language-Action**.
+Aap kehte hain: *"Mujhe pyaas lagi hai."*
+Robot sochta hai:
+1.  "Pyaas" -> Paani chahiye.
+2.  "Paani" -> Cup ya Bottle mein hota hai.
+3.  **Dekhna**: Cup kahan hai?
+4.  **Kaam**: Cup utha kar laao.
+
+Yeh **ChatGPT** aur **Robots** ka milap hai.
+
+### Kaise Kaam Karta Hai?
+Yeh models 3 cheezain input lete hain:
+1.  **Tasveer**: Robot kya dekh raha hai.
+2.  **Text**: Insaan ne kya kaha.
+3.  **Haalat**: Robot ka haath kahan hai.
+
+Aur output dete hain:
+*   **Action**: Motors ko kahan hilana hai.
+
+Hum is course mein **Modular Approach** use karenge:
+Dimagh (LLM) faisla karega ("Cup uthao"), aur Jism (ROS 2) wo kaam karega.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Foundation Models aur Embodied AI
+
+**LLMs se VLAs Tak**
+
+LLMs (jaise GPT) sirf text samajhte hain.
+VLA models (jaise RT-2) text, tasveer aur **Action** samajhte hain.
+
+**Action Tokenization**
+Transformer model motors kaise chalata hai?
+Hum motor ki movement ko numbers (Tokens) mein badal dete hain.
+Model kehta hai: `[Move, 120, 45, 200]`.
+Hum in numbers ko wapis electrical signals mein badal kar motors ko bhejte hain.
+
+### Modular Pipeline (Jetson Friendly)
+
+Kyunke VLA models bohat bhari hotay hain, hum unhein Jetson par nahi chala sakte. Hum tukron mein kaam karte hain:
+1.  **VLM (NanoLLaVA)**: Dekhta hai. "Table par seb hai."
+2.  **LLM (Llama-3)**: Sochta hai. "User ko phal chahiye -> Seb uthao."
+3.  **ROS 2**: Karta hai. MoveIt use kar ke haath hilata hai.
+
+Is ka faida ye hai ke "Sochne" wala hissa slow ho sakta hai, magar "Karne" wala hissa (Safety) fast rehta hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What does VLA stand for?",
+    options: ["Very Large Array", "Vision Language Action", "Virtual Local Area", "Visual Learning Algorithm"],
+    correctAnswer: 1
+  },
+  {
+    question: "In the modular approach, what is the role of the LLM?",
+    options: [
+      "To detect edges in the image",
+      "To control the motor voltage directly",
+      "To act as a Planner (Reasoning about tasks)",
+      "To save the file"
+    ],
+    correctAnswer: 2
+  },
+  {
+    question: "Urdu: VLA model ka input kya hota hai?",
+    options: [
+      "Sirf Text",
+      "Sirf Image",
+      "Image, Text, aur Robot State",
+      "Sirf Audio"
+    ],
+    correctAnswer: 2
+  }
+]} />

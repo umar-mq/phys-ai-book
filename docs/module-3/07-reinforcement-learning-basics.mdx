@@ -1,0 +1,161 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 3.7 The Brain that Learns: Reinforcement Learning (RL)
+
+<Personalization level="novice" language="english">
+
+## Teaching Robots like Dogs
+
+**Classical Control vs. AI**
+*   **Classical (PID)**: You write the math equations for walking. Hard.
+*   **Reinforcement Learning (RL)**: You tell the robot "Good Job" when it walks, and "Bad Job" when it falls. The robot figures out the math itself.
+
+**The Loop**
+1.  **Agent**: The Robot.
+2.  **Environment**: The Simulation.
+3.  **Action**: The robot moves a motor.
+4.  **Reward**:
+    *   Moved forward? +1 Point.
+    *   Fell down? -10 Points.
+    *   Used too much electricity? -0.1 Points.
+
+**Isaac Gym**
+Training a robot to walk takes millions of tries. In real life, this would take years.
+In **Isaac Gym**, we run 4,000 robots at the same time on the GPU. It learns to walk in **20 minutes**.
+
+### Your First RL Training
+We will use a pre-made example in Isaac Sim: **Ant**.
+
+1.  Go to `Isaac Utils > Workflows > Isaac Gym`.
+2.  Select environment: `Ant`.
+3.  Click **Train**.
+4.  A new window opens. You will see hundreds of Ants falling over.
+5.  Wait 5 minutes. They start crawling.
+6.  Wait 10 minutes. They run fast!
+
+This is the power of massive parallelism.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## PPO and Massive Parallelism
+
+**Proximal Policy Optimization (PPO)**
+
+The industry standard algorithm for continuous control robotics is **PPO**.
+It is an "On-Policy" gradient method.
+*   **Policy Network ($\pi$)**: Takes State (Joint angles, IMU) -> Outputs Actions (Joint Torques).
+*   **Value Network ($V$)**: Estimates "How good is this state?" to reduce variance.
+
+**The Reward Function Engineering**
+The magic is not in the algorithm, but in the Reward Function ($R$).
+For a humanoid:
+$$ R = w_1 v_x + w_2 (1 - |\theta_{roll}|) - w_3 ||\tau|| - w_4 ||\ddot{q}|| $$
+*   $v_x$: Velocity forward (We want speed).
+*   $\theta_{roll}$: Torso orientation (Stay upright).
+*   $\tau$: Torque (Don't waste energy).
+*   $\ddot{q}$: Jerk (Motion smoothness).
+
+### Isaac Gym / OmniIsaacGymEnvs
+
+Traditionally, RL collected data on CPU and trained on GPU. The bottleneck was PCIe bandwidth.
+Isaac Gym keeps the **Physics Simulation** and the **Neural Network** both on the GPU VRAM.
+Data never leaves the GPU. This achieves >100,000 FPS sample throughput.
+
+**Configuring the Training**:
+Inside the `task_config.yaml`:
+*   `numEnvs`: 4096 (Number of robots).
+*   `episodeLength`: 1000 (Steps before reset).
+*   `sim_device`: cuda:0.
+
+**Checkpointing**:
+The output is a `.pth` (PyTorch) file. To run this on the robot, you export the Policy Network to ONNX/TensorRT.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Robot Ko Sikhana: Reinforcement Learning
+
+**Robot ko Kuttay ki tarah train karna**
+
+*   **Classical**: Aap math ki equations likhte hain. Ye mushkil hai.
+*   **Reinforcement Learning (RL)**: Aap robot ko "Shabash" (Reward) dete hain jab wo acha kaam karta hai, aur "Saza" (Penalty) dete hain jab wo girta hai. Robot khud seekh leta hai ke kya karna hai.
+
+**The Loop**
+1.  **Agent**: Robot.
+2.  **Action**: Motor hilana.
+3.  **Reward**:
+    *   Aage barha? +1 Point.
+    *   Gira? -10 Points.
+
+**Isaac Gym**
+Chalna seekhne ke liye robot ko lakhon baar girna parta hai.
+**Isaac Gym** mein hum 4,000 robots ek sath GPU par chalate hain. Jo kaam saalon mein hona tha, wo **20 minute** mein ho jata hai.
+
+### Pehli Training: Ant Robot
+1.  Isaac Sim mein `Isaac Utils > Isaac Gym` par jayein.
+2.  `Ant` select karein.
+3.  **Train** dabayein.
+4.  Aap dekhein gay ke hazaron keeray (Ants) gir rahe hain. 10 minute baad wo sab bhagna shuru kar dein gay.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## PPO aur Parallelism
+
+**Reward Function Engineering**
+
+RL mein sab se ahem cheez **Reward Function** hai. Aap robot ko kya chahte hain?
+Humanoid ke liye formula:
+*   Tez chalo (+ Reward).
+*   Seedhay raho (+ Reward).
+*   Bijli zaya mat karo (- Penalty).
+*   Jhatkay mat lo (- Penalty).
+
+Agar aap ne "Jhatkay" ki penalty nahi lagayi, to robot tez to chalega magar wo vibrate karega, jo ke motors tor de ga.
+
+### Isaac Gym Architecture
+
+Aam taur par data CPU par banta hai aur GPU par train hota hai.
+Isaac Gym mein **Physics** aur **Brain** dono GPU par hotay hain. Data kabhi bahar nahi aata. Is liye ye itna tez hai.
+
+**Training Config**:
+`task_config.yaml` file mein hum set karte hain:
+*   `numEnvs`: 4096 (Robots ki taadad).
+*   `episodeLength`: 1000 steps.
+
+Output ek `.pth` file hoti hai jo robot ka naya dimagh hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the primary benefit of Isaac Gym over traditional RL environments?",
+    options: [
+      "It runs physics and training on the GPU, avoiding CPU-GPU bottlenecks",
+      "It is written in Java",
+      "It only supports simple robots",
+      "It is free"
+    ],
+    correctAnswer: 0
+  },
+  {
+    question: "In RL, what is the signal that tells the robot if it did a good or bad job?",
+    options: ["The Loss", "The Gradient", "The Reward", "The Costmap"],
+    correctAnswer: 2
+  },
+  {
+    question: "Urdu: Agar robot chalna seekh le lekin bohat zyada energy zaya kare, to Reward Function mein kya kami thi?",
+    options: [
+      "Speed ka reward kam tha",
+      "Energy/Torque penalty shamil nahi thi",
+      "Robot ka wazan zyada tha",
+      "Simulation slow thi"
+    ],
+    correctAnswer: 1
+  }
+]} />

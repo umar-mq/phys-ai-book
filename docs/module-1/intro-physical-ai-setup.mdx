@@ -1,0 +1,413 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 1.1 Foundations of Physical AI & Laboratory Setup
+
+<Personalization level="novice" language="english">
+
+## Welcome to the World of Physical AI
+
+**The New Frontier: Giving AI a Body**
+
+Welcome to the future of robotics. You are likely familiar with "Digital AI"—systems like ChatGPT or Midjourney that live on servers and process text or images. These are "disembodied" minds; they have no concept of gravity, friction, or the fragility of a glass cup.
+
+**Physical AI** (or Embodied Intelligence) is different. It is the discipline of creating AI systems that inhabit a physical body (a robot) and interact with the physical world.
+*   **Digital AI**: Writes a poem about an apple.
+*   **Physical AI**: Sees the apple, reaches for it, feels its weight, and places it in a basket without crushing it.
+
+In this course, we bridge the gap. We take the "Brain" (AI models) and connect it to the "Nervous System" (ROS 2) to control the "Body" (Humanoid Robot).
+
+### Part 1: Your Development Environment
+
+To build Physical AI, we need a very specific laboratory setup. We deal with three heavy computational loads:
+1.  **Simulation**: Creating a fake world (Digital Twin) requires heavy graphics processing (GPU).
+2.  **Control**: The robot's nervous system (ROS 2) requires a stable, low-latency operating system (Linux).
+3.  **Inference**: Running AI models requires Tensor cores (NVIDIA AI).
+
+#### 1. The Workstation (The Simulator)
+You cannot do this course on a standard MacBook Air or a Chromebook. We require a **Workstation**.
+*   **The GPU (Graphics Processing Unit)**: We need an NVIDIA RTX card (3060 or higher). This is because we use **Isaac Sim**, which uses "Ray Tracing" to simulate light and LiDAR sensors realistically.
+*   **The OS (Operating System)**: We use **Ubuntu 22.04 LTS**.
+    *   *Why not Windows?* ROS 2 runs on Windows, but it is a "second-class citizen." Most robotic drivers and AI tools are native to Linux. Using Windows will lead to constant errors.
+    *   *Why not macOS?* Apple Silicon (M1/M2) is powerful, but NVIDIA Isaac Sim specifically requires NVIDIA GPUs (CUDA architecture).
+
+#### 2. The Edge Kit (The Robot Brain)
+While your workstation simulates the robot, the **NVIDIA Jetson** is the actual computer that goes *inside* a real robot.
+*   Think of the Workstation as the "School" where the AI learns.
+*   Think of the Jetson as the "Brain" inside the robot's head where the AI lives after graduating.
+We use the **Jetson Orin Nano**. It is small, low-power, but capable of running neural networks.
+
+---
+
+### Part 2: Installing the Nervous System (ROS 2)
+
+We will install **ROS 2 Humble Hawksbill**. ROS 2 is the middleware—the software glue that lets different parts of the robot talk to each other.
+
+#### Step 1: Set up Locale
+Robots need to know what language (character encoding) they are speaking. We set the computer to support UTF-8.
+
+```bash
+locale  # check for UTF-8
+
+sudo apt update && sudo apt install locales
+sudo locale-gen en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+```
+
+#### Step 2: Add the ROS 2 Repositories
+We need to tell your Ubuntu computer where to find the ROS 2 software.
+
+```bash
+sudo apt install software-properties-common
+sudo add-apt-repository universe
+
+# Add the GPG key (a security key to prove the software is safe)
+sudo apt update && sudo apt install curl -y
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
+# Add the repository to your sources list
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+```
+
+#### Step 3: Install ROS 2 Packages
+Now we download the actual software. We install the "Desktop" version, which includes visualization tools.
+
+```bash
+sudo apt update
+sudo apt upgrade
+sudo apt install ros-humble-desktop
+```
+*Note: This might take a while depending on your internet speed.*
+
+#### Step 4: Environment Setup
+This is the most common mistake for beginners. Every time you open a new terminal (black command window), the computer forgets where ROS 2 is. You must "source" the setup file.
+
+To do this automatically every time:
+```bash
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+---
+
+### Part 3: Testing the Installation
+
+Let's verify that your "Nervous System" is working. We will run two "Nodes" (programs).
+1.  **Talker**: Says "Hello World".
+2.  **Listener**: Hears "Hello World".
+
+**Terminal 1 (The Talker):**
+```bash
+ros2 run demo_nodes_cpp talker
+```
+*You should see:* `[INFO]: Publishing: 'Hello World: 1'`
+
+**Terminal 2 (The Listener):**
+Open a new window.
+```bash
+ros2 run demo_nodes_py listener
+```
+*You should see:* `[INFO]: I heard: ['Hello World: 1']`
+
+Congratulations! You have successfully installed the foundation of your robot's mind.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Advanced Physical AI Architecture & Environment Tuning
+
+**Embodied Intelligence: The Theoretical Shift**
+
+We are transitioning from **ANI (Artificial Narrow Intelligence)** operating in symbolic vacuums to **Embodied AI**. The core challenge here is the **Sim-to-Real Gap**.
+In a digital environment, `move_forward(10)` results in exactly 10 units of movement. In the physical world, `move_forward(10)` results in wheel slippage, friction variation, and motor heat degradation, leading to 9.8 or 10.2 units of movement.
+Your setup must account for this via **High-Fidelity Physics Simulation**. This is why we mandate the NVIDIA Isaac Sim platform, which utilizes **PhysX 5** to simulate contact dynamics and friction cones more accurately than the standard Bullet physics engine used in older Gazebo versions.
+
+### 1. Hardware Constraints & Kernel Latency
+
+**The Workstation (Sim-Side):**
+We require NVIDIA RTX architecture because Isaac Sim relies on **RT Cores** for real-time ray tracing of sensor data (LiDAR point clouds are essentially ray-casted depth).
+*   **Bottleneck Warning**: Ensure your motherboard supports **PCIe Gen 4 or 5**. Putting an RTX 4090 in a PCIe Gen 3 slot will throttle the bandwidth needed for massive USD (Universal Scene Description) asset loading.
+
+**The Edge (Robot-Side):**
+On the Jetson Orin, we are constrained by **SWaP (Size, Weight, and Power)**.
+*   **NVPModel**: You will need to manage the power modes. `sudo nvpmodel -m 0` enables MAXN (maximum performance), but will drain the battery in < 20 minutes on a quadruped.
+*   **Shared Memory**: The Jetson uses a unified memory architecture (CPU and GPU share RAM). If your ROS 2 nodes consume 6GB of RAM and you try to load a 4GB VLA model, the OOM (Out of Memory) killer will terminate your safety controller.
+
+### 2. Low-Latency OS Tuning
+
+Standard Ubuntu 22.04 is a generic kernel. For high-speed humanoid balancing, we often need lower latency.
+
+**Preempt_RT Kernel (Optional but Recommended for Balancing):**
+If you intend to do dynamic walking, the standard Linux scheduler is too slow (non-deterministic). You may need to patch your kernel with `PREEMPT_RT`.
+*   *Check current kernel:* `uname -r`
+*   *Target:* A kernel configured with `CONFIG_PREEMPT_RT=y`.
+This ensures your robot's control loop (e.g., 500Hz or 1kHz) is not interrupted by a background OS update process.
+
+### 3. ROS 2 Installation: Production Grade
+
+For expert users, simply `apt install` is insufficient if you need to debug core communication issues. However, for this course, we stick to binaries to ensure version alignment.
+
+**DDS (Data Distribution Service) Selection:**
+ROS 2 abstracts the communication layer, but the underlying carrier is DDS. The default is **Fast DDS** (eProsima).
+However, for high-bandwidth video over Wi-Fi, **Cyclone DDS** often performs better.
+
+*Install Cyclone DDS:*
+```bash
+sudo apt install ros-humble-rmw-cyclonedds-cpp
+```
+
+*Configure to use Cyclone:*
+```bash
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+```
+Add this to your `.bashrc` to make it permanent. This is crucial when we start streaming 1080p video from the robot to the workstation.
+
+### 4. Containerization (Docker)
+
+Advanced workflows often use Docker to prevent "Dependency Hell."
+We will use the **l4t-ros2** base images on the Jetson.
+
+```bash
+# Example of pulling a ROS 2 Humble image for Jetson
+sudo docker pull dustynv/ros:humble-desktop-l4t-r35.3.1
+```
+*Pros:* Portable. If you brick the environment, you just restart the container.
+*Cons:* Hardware acceleration (GPU access) inside Docker requires the `nvidia-container-runtime`.
+
+### 5. Verification: The Graph
+
+Instead of just `talker` and `listener`, we inspect the graph.
+
+```bash
+ros2 run demo_nodes_cpp talker &
+ros2 run demo_nodes_py listener &
+rqt_graph
+```
+Use `rqt_graph` to visualize the topology. Ensure the QoS (Quality of Service) settings match. If Talker is "Best Effort" and Listener is "Reliable," they may not communicate effectively in lossy networks.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Physical AI Ki Buniyad
+
+**Physical AI Kya Hai? (AI Ko Jism Dena)**
+
+Khush aamdeed! Aap robot ki dunya mein qadam rakh rahe hain. Aap ne "Digital AI" (jaise ChatGPT) ke baare mein suna hoga. Wo sirf computer ke andar rehta hai. Usey nahi pata ke garam chai ka cup pakarna kaisa hota hai ya zameen par chalna kaisa hai.
+
+**Physical AI** ka matlab hai AI ko ek jism (body) dena.
+*   **Digital AI**: Ek seb (apple) ke baare mein kahani likh sakta hai.
+*   **Physical AI**: Seb ko dekh sakta hai, utha sakta hai, aur bina dabaye usey basket mein rakh sakta hai.
+
+Is course mein hum "Dimagh" (AI) ko "Asaabi Nizam" (Nervous System - ROS 2) ke zariye "Jism" (Robot) se jorenge.
+
+### Hissa 1: Aap Ki Lab (Samaan Ki Zaroorat)
+
+Physical AI ke liye humein khaas computer chahiye. Aam laptop (jaise school ka laptop) is kaam ke liye kaafi nahi hai. Humein teen cheezon ki zaroorat hai:
+
+1.  **Simulation (Naqli Dunya)**: Robot ko pehle computer ke andar chalana seekhana parega. Iske liye taqatwar Graphics Card chahiye.
+2.  **Control (Qaaboo)**: Robot ko chalane wala software (ROS 2) Linux par sabse acha chalta hai.
+3.  **Inference (Faisla Sazi)**: AI models ko chalane ke liye NVIDIA ki chips chahiye.
+
+#### 1. Workstation (Bara Computer)
+Aapko ek taqatwar computer chahiye jisme **NVIDIA RTX** graphic card ho.
+*   **Kyun?** Hum **Isaac Sim** istemal karenge. Yeh software roshni aur physics ko bilkul haqeeqi dunya ki tarah dikhata hai. Agar graphic card halka hoga, to simulation atak jayegi.
+*   **Operating System**: Hum **Ubuntu 22.04** use karenge. Windows par robotics ka kaam mushkil hota hai kyunke zyada tar tools Linux ke liye banaye gaye hain.
+
+#### 2. Edge Kit (Robot Ka Dimagh)
+Jab robot tayar ho jaye ga, to hum uska code **NVIDIA Jetson** mein dalenge.
+*   Workstation "School" hai jahan robot seekhta hai.
+*   Jetson "Dimagh" hai jo robot ke andar lagta hai.
+Hum **Jetson Orin Nano** istemal karenge. Yeh chota hai lekin bohat samajhdar hai.
+
+---
+
+### Hissa 2: Nervous System (ROS 2) Install Karna
+
+Hum **ROS 2 Humble** install karenge. Yeh robot ka "middleware" hai. Yani wo software jo robot ke camera, motors, aur dimagh ko apas mein baat karne deta hai.
+
+#### Qadam 1: Locale Set Karein
+Computer ko batana zaroori hai ke wo konsi zaban (encoding) samjhe.
+
+```bash
+locale  # check karein
+
+sudo apt update && sudo apt install locales
+sudo locale-gen en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+```
+
+#### Qadam 2: ROS 2 Ki Repositories Shamil Karein
+Humein Ubuntu ko batana hai ke ROS 2 kahan se download karna hai.
+
+```bash
+sudo apt install software-properties-common
+sudo add-apt-repository universe
+
+# GPG key (Security key) add karein
+sudo apt update && sudo apt install curl -y
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
+# Source list mein add karein
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+```
+
+#### Qadam 3: Software Install Karein
+Ab hum asal software download karenge.
+
+```bash
+sudo apt update
+sudo apt upgrade
+sudo apt install ros-humble-desktop
+```
+*Note: Is mein thora waqt lag sakta hai, yeh aap ke internet par munhasir hai.*
+
+#### Qadam 4: Mahol (Environment) Set Karein
+Yeh sabse ahem hissa hai. Jab bhi aap nayi terminal window kholte hain, computer bhool jata hai ke ROS 2 kahan hai. Aapko usey yaad dilana parta hai.
+
+Isey khud-kaar (automatic) banane ke liye yeh command likhein:
+```bash
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+---
+
+### Hissa 3: Test Karein
+
+Aayein check karein ke sab theek chal raha hai ya nahi. Hum do chote programs chalayenge.
+1.  **Talker (Bolne wala)**: Yeh "Hello World" bolega.
+2.  **Listener (Sunne wala)**: Yeh "Hello World" sunega.
+
+**Terminal 1 (Talker):**
+```bash
+ros2 run demo_nodes_cpp talker
+```
+*Aap dekhenge:* `[INFO]: Publishing: 'Hello World: 1'`
+
+**Terminal 2 (Listener):**
+Nayi window kholein aur likhein:
+```bash
+ros2 run demo_nodes_py listener
+```
+*Aap dekhenge:* `[INFO]: I heard: ['Hello World: 1']`
+
+Mubarak ho! Aap ne apne robot ka dimagh tayar kar liya hai.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Advanced Physical AI Architecture
+
+**Embodied Intelligence: Nazriati Tabdeeli**
+
+Hum sirf "Software AI" se nikal kar "Embodied AI" (Mujassam Zehanat) ki taraf barh rahe hain. Yahan sabse bara challenge **Sim-to-Real Gap** hai.
+Computer simulation mein, agar aap robot ko `move_forward(10)` ka hukum dete hain, to wo bilkul 10 unit aage jata hai. Lekin haqeeqi dunya mein, `move_forward(10)` ka nateeja 9.8 ya 10.2 ho sakta hai kyunke zameen ki ragar (friction), motor ki garmi, aur pahiye ki phislan (slippage) asar andaaz hoti hai.
+Is course mein hum **NVIDIA Isaac Sim** istemal karte hain kyunke iska **PhysX 5** engine in tamam physical interactions ko bohat behtareen tareeqay se naqal (simulate) karta hai.
+
+### 1. Hardware Ki Rukawatein (Bottlenecks)
+
+**Workstation (Simulator Side):**
+Humein NVIDIA RTX architecture ki zaroorat hai kyunke Isaac Sim **RT Cores** (Ray Tracing Cores) ka istemal karta hai. LiDAR sensors ka data asal mein roshni ki rays hain jo takra kar wapis aati hain, aur isey calculate karne ke liye GPU ki taqat chahiye.
+*   **PCIe Bandwidth**: Yaqeen karlein ke aap ka motherboard PCIe Gen 4 support karta hai. Agar aap RTX 4090 ko purane motherboard mein lagayenge, to data transfer speed kam ho jayegi aur simulation atak jaye gi.
+
+**The Edge (Robot Side):**
+Jetson Orin par humein **SWaP (Size, Weight, Power)** ka khayal rakhna parta hai.
+*   **NVPModel**: Jetson ki power management zaroori hai. `sudo nvpmodel -m 0` command se Jetson full power par chalta hai, lekin agar aap battery par hain to yeh battery 20 minute mein khatam kar dega.
+*   **Shared Memory**: Jetson mein CPU aur GPU ek hi RAM share karte hain. Agar aap ka ROS 2 system 6GB RAM le raha hai aur aap 4GB ka AI model load karte hain, to **OOM Killer** (Out of Memory Killer) aap ke process ko band kar dega.
+
+### 2. Low-Latency OS Tuning
+
+Ubuntu 22.04 ka default kernel "general purpose" hota hai. Humanoid robots ko balance rakhne ke liye humein fori rad-e-amal (real-time response) chahiye.
+
+**Preempt_RT Kernel:**
+Agar aap robot ko chalana (walking/locomotion) chahte hain, to standard Linux scheduler kabhi kabhi slow ho sakta hai. Expert users **Real-time Kernel** (`CONFIG_PREEMPT_RT`) compile karte hain.
+Is se yeh yaqeeni banaya jata hai ke robot ka control loop (jo ke aam taur par 500Hz ya 1000Hz par chalta hai) kisi aur background process ki wajah se late na ho.
+
+### 3. ROS 2 Installation: Production Level
+
+Expert users ke liye sirf `apt install` kaafi nahi hota agar unhein gehrai mein debugging karni ho.
+
+**DDS (Data Distribution Service) Ka Intekhab:**
+ROS 2 communication ke liye neeche DDS layer use karta hai. Default **Fast DDS** hai.
+Lekin, agar aap Wi-Fi par high-definition video stream kar rahe hain, to **Cyclone DDS** behtar perform karta hai.
+
+*Cyclone DDS Install karein:*
+```bash
+sudo apt install ros-humble-rmw-cyclonedds-cpp
+```
+
+*Configuration:*
+Apne `.bashrc` mein yeh line add karein:
+```bash
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+```
+Yeh tab bohat zaroori hota hai jab hum robot se workstation tak heavy data bhejte hain.
+
+### 4. Containerization (Docker)
+
+Professional robotics mein hum **Docker** use karte hain taake dependencies ka masla na ho. Jetson ke liye hum **l4t-ros2** images use karte hain.
+
+```bash
+# Jetson ke liye ROS 2 image pull karna
+sudo docker pull dustynv/ros:humble-desktop-l4t-r35.3.1
+```
+*Faida:* Agar software kharab ho jaye, to container delete kar ke naya bana lein. OS dobara install karne ki zaroorat nahi.
+
+### 5. Verification: The Graph
+
+Sirf text dekhna kaafi nahi. `rqt_graph` tool ka istemal karein taake aap nodes ka jaal (topology) dekh sakein.
+
+```bash
+rqt_graph
+```
+Is mein **QoS (Quality of Service)** check karein. Agar Talker "Best Effort" par hai aur Listener "Reliable" par, to packet loss hone par communication fail ho sakti hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the primary difference between Digital AI and Physical AI?",
+    options: [
+      "Digital AI is faster",
+      "Physical AI requires a body and adheres to physical laws",
+      "Digital AI uses Python, Physical AI uses C++",
+      "There is no difference"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Why is an NVIDIA RTX GPU required for the Workstation in this course?",
+    options: [
+      "To mine cryptocurrency in the background",
+      "To run Ray Tracing for realistic sensor simulation in Isaac Sim",
+      "Because ROS 2 only runs on NVIDIA",
+      "To improve internet speed"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Which environment variable must be set to configure the ROS 2 middleware implementation (e.g., to switch to Cyclone DDS)?",
+    options: [
+      "ROS_DOMAIN_ID",
+      "RMW_IMPLEMENTATION",
+      "ROS_LOCALHOST_ONLY",
+      "PYTHONPATH"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Robot ke 'nervous system' (asaabi nizam) ke liye hum kaunsa software use kar rahe hain?",
+    options: [
+      "Windows 11",
+      "Unity",
+      "ROS 2",
+      "ChatGPT"
+    ],
+    correctAnswer: 2
+  }
+]} />

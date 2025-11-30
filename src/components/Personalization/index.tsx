@@ -1,27 +1,33 @@
 import React, { useContext, ReactNode } from 'react';
 import { PersonalizationContext } from '../../contexts/PersonalizationProvider';
+import './styles.css';
 
 interface Props {
   children: ReactNode;
   level: string;
+  language?: string;
 }
 
-export default function Personalization({ children, level }: Props) {
+export default function Personalization({ children, level, language }: Props) {
   const context = useContext(PersonalizationContext);
   
   if (!context) return null;
   
-  const { experienceLevel } = context;
+  const { experienceLevel, language: contextLanguage } = context;
   
   // Normalize inputs
-  const current = experienceLevel.toLowerCase(); // "novice" or "professional"
-  const target = level.toLowerCase();
+  const currentLevel = experienceLevel.toLowerCase(); // "novice" or "professional"
+  const targetLevel = level.toLowerCase();
+  
+  // Normalize language
+  const currentLang = contextLanguage.toLowerCase();
+  const targetLang = (language || 'English').toLowerCase();
 
   // Map "expert" to "professional" to handle synonyms
-  const normalizedTarget = target === 'expert' ? 'professional' : target;
+  const normalizedTargetLevel = targetLevel === 'expert' ? 'professional' : targetLevel;
 
-  if (current === normalizedTarget) {
-    return <div className="animate-fade-in my-4">{children}</div>;
+  if (currentLevel === normalizedTargetLevel && currentLang === targetLang) {
+    return <div className="animate-fade-in my-4 personalization-content">{children}</div>;
   }
   return null;
 }

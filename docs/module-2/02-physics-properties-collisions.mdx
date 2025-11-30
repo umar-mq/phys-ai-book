@@ -1,0 +1,187 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 2.2 Physics, Properties & Collisions
+
+<Personalization level="novice" language="english">
+
+## Why Things Fall Down
+
+**The Physics Engine**
+Gazebo doesn't "know" physics. It uses a calculator called a **Physics Engine**. The default is usually **Dart** or **Bullet**.
+These engines calculate $F=ma$ thousands of times per second.
+
+**Three Main Properties**
+To make an object behave realistically, you must define:
+1.  **Mass**: How heavy is it? (1kg vs 100kg).
+2.  **Friction**: How rough is it? (Ice vs Sandpaper).
+3.  **Collision Shape**: Where can it be touched?
+
+### The Collision Mesh Problem
+
+Beginners often ask: *"Why did my robot fall through the floor?"*
+Usually, it's because:
+*   You forgot the `<collision>` tag in the URDF/SDF.
+*   You spawned the robot *inside* the floor (Example: z=0.0). Physics engines hate this. They see two objects occupying the same space, get confused, and generate infinite force, launching the robot into space.
+*   **Fix**: Always spawn your robot slightly above the ground (z=0.1).
+
+### Friction (Making it grip)
+If your robot wheels spin but it doesn't move, you have no friction.
+In SDF (Simulation Description Format), we set `<mu>` (friction coefficient).
+*   `mu = 0.0`: Ice.
+*   `mu = 1.0`: Rubber on Concrete.
+
+```xml
+<surface>
+  <friction>
+    <ode>
+      <mu>1.0</mu>
+      <mu2>1.0</mu2>
+    </ode>
+  </friction>
+</surface>
+```
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## LCP Solvers & Numerical Stability
+
+**The Constraint Problem**
+
+Rigid Body Dynamics in simulations are solved as **Linear Complementarity Problems (LCP)**.
+When a robot foot hits the ground:
+1.  **Non-penetration constraint**: Distance $\ge 0$.
+2.  **Normal force**: If Distance > 0, Force = 0. If Distance = 0, Force > 0.
+
+**Physics Engines: Dart vs. PhysX**
+*   **Dart**: Highly accurate for kinematic chains (good for robotic arms). Uses generalized coordinates. Slower with many contacts.
+*   **PhysX (NVIDIA)**: Used in Isaac Sim. Uses maximal coordinates with aggressive solver iterations. extremely fast on GPU, but can be "jittery" if mass ratios are high (e.g., a 1kg hand attached to a 10g finger).
+
+### Tuning Contact Parameters
+
+For a Humanoid walking, default parameters often lead to "slipping" even with high friction, or "bouncing".
+
+1.  **kp (Stiffness)**: How hard is the material?
+    *   Low: Soft mud (sinks in).
+    *   High: Steel (bounces).
+    *   *Tuning*: For walking robots, keep high ($10^6$ to $10^{12}$), but too high causes explosion due to numerical integration errors.
+2.  **kd (Damping)**: Absorbs energy. Prevents the "jitter/vibration" when standing still.
+3.  **fdir1 (Friction Direction)**: Anisotropic friction.
+    *   *Use case*: Omni-wheels. You want high friction in the rolling direction, but low friction in the sideways direction.
+
+### Inertia Matrix & Stability
+
+The physics engine inverts the Inertia Matrix ($I^{-1}$) to calculate angular acceleration.
+$$ \tau = I \alpha \rightarrow \alpha = I^{-1} \tau $$
+If your Inertia Matrix is ill-conditioned (e.g., extremely thin long object modeled as a sphere), the inversion introduces numerical noise.
+**Rule of Thumb**: Keep mass ratios between connected links under 1:10. Don't connect a 100kg base to a 0.01kg sensor directly via a joint; use a dummy intermediate link if necessary.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Physics, Khasiyat Aur Takrao
+
+**Cheezain Kyun Girti Hain?**
+
+**Physics Engine**
+Gazebo khud kuch nahi janta. Wo ek calculator use karta hai jise Physics Engine kehte hain (jaise **Dart** ya **Bullet**).
+Yeh engine har second hazaron baar $F=ma$ ka hisab karta hai.
+
+**Teen Aham Cheezein**
+Kisi cheez ko asli dikhane ke liye aap ko batana parta hai:
+1.  **Mass (Wazan)**: Kitna bhari hai?
+2.  **Friction (Ragarr)**: Kitna khurdura hai? (Baraf hai ya rubber?).
+3.  **Collision Shape**: Isay kahan choo sakte hain?
+
+### Zameen Mein Dhasnay Ka Masla
+
+Naye log aksar puchtay hain: *"Mera robot zameen ke aar paar kyun chala gaya?"*
+Wajohaat:
+*   Aap ne `<collision>` tag nahi lagaya. (Computer ko laga ye bhoot hai).
+*   Aap ne robot ko zameen ke *andar* paida kiya (Example: z=0.0). Physics engine pareshan ho jata hai ke do cheezain ek jagah kaise hain, aur wo robot ko jhatkay se hawa mein phenk deta hai.
+*   **Hal**: Robot ko hamesha zameen se thora oopar spawn karein (z=0.1).
+
+### Friction (Pakarr)
+Agar robot ke pahiye ghoom rahe hain lekin wo aage nahi barh raha, to is ka matlab hai tyre phisal rahe hain.
+Humein `<mu>` set karna hota hai.
+*   `mu = 0.0`: Baraf (phisalnay wali).
+*   `mu = 1.0`: Rubber (mazboot pakarr).
+
+```xml
+<surface>
+  <friction>
+    <ode>
+      <mu>1.0</mu> <!-- Seedha -->
+      <mu2>1.0</mu2> <!-- Side par -->
+    </ode>
+  </friction>
+</surface>
+```
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## LCP Solvers aur Numerical Stability
+
+**Constraint Ka Masla**
+
+Computer simulation mein physics asal mein hisab ke sawal (**LCP**) hotay hain.
+Jab robot ka paon zameen par lagta hai:
+1.  **Shart**: Paon zameen ke andar nahi ja sakta.
+2.  **Normal Force**: Agar paon hawa mein hai, to force zero hai. Agar zameen par hai, to zameen wapis dhakka degi.
+
+**Engines: Dart vs PhysX**
+*   **Dart**: Robot arms ke liye acha hai (bohat accurate hai).
+*   **PhysX (NVIDIA)**: Isaac Sim mein use hota hai. Bohat tez hai, lekin kabhi kabhi "jitter" (kampna) karta hai agar wazan ka farq bohat zyada ho.
+
+### Contact Tuning (Jorr Set Karna)
+
+Humanoid robot ke liye default settings aksar nakaam hoti hain. Robot phisalta rehta hai.
+
+1.  **kp (Stiffness/Sakhti)**: Material kitna sakht hai?
+    *   Kam: Keechar (paon dhas jaye ga).
+    *   Zyada: Steel (bounce karega).
+    *   *Tip*: Isay zyada rakhein ($10^6$), lekin had se zyada nahi warna calculation error aayega aur robot urr jaye ga.
+2.  **kd (Damping)**: Jhatka jazb karna. Agar robot kharay kharay kaanp raha hai, to damping barhayein.
+3.  **fdir1 (Friction Direction)**: Omni-wheels ke liye zaroori hai. Hum chahte hain ke pahiya agay peechay grip kare, lekin side par phisal sakay.
+
+### Inertia Matrix aur Stability
+
+Physics engine angular acceleration nikalne ke liye Inertia Matrix ko ulta (invert) karta hai.
+$$ \alpha = I^{-1} \tau $$
+Agar aap ki matrix ghalat hai (maslan ek lambi rod ko aap sphere bata dein), to calculation ghalat ho jaye gi.
+**Usool**: Do jurray hue hisson ka wazan 1:10 se zyada farq nahi hona chahiye. 100kg ke jism ke sath 10g ka sensor direct joint se na jorein.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "Why should you spawn a robot at z=0.1 instead of z=0.0?",
+    options: [
+      "To give it a head start",
+      "To avoid penetrating the ground plane, which causes physics instability",
+      "Because robots can fly",
+      "Z=0.0 is reserved for the sun"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Which parameter controls the 'roughness' or grip of a surface?",
+    options: ["kp", "kd", "mu (friction coefficient)", "density"],
+    correctAnswer: 2
+  },
+  {
+    question: "Urdu: Agar robot ke pahiye ghoom rahe hain magar wo chal nahi raha, to kis cheez ki kami hai?",
+    options: [
+      "Petrol",
+      "Friction (Ragarr)",
+      "Gravity",
+      "Hawa"
+    ],
+    correctAnswer: 1
+  }
+]} />

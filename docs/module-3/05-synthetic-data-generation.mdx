@@ -1,0 +1,186 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 3.5 Infinite Data: Synthetic Data Generation (SDG)
+
+<Personalization level="novice" language="english">
+
+## Teaching AI Without Real Photos
+
+**The Data Problem**
+To train an AI to recognize a "Coke Can", you need 10,000 photos of a Coke Can.
+Taking 10,000 photos manually is boring and slow. You have to move the can, change the lights, change the background.
+
+**The Solution: SDG**
+In Isaac Sim, we can generate these photos automatically.
+We tell the computer:
+1.  "Spawn a Coke Can."
+2.  "Randomize the light."
+3.  "Randomize the position."
+4.  "Take a photo."
+5.  "Repeat 10,000 times."
+
+This is **Synthetic Data**. It is perfectly labeled. We know exactly where the can is (pixel perfect), so we don't need humans to draw boxes around it.
+
+### Using the Replicator Tool
+Isaac Sim has a tool called **Omniverse Replicator**.
+
+1.  Open Isaac Sim.
+2.  Go to `Replicator > Semantics Schema Editor`.
+3.  Select your object (Coke Can).
+4.  Add a label: `class: coke_can`.
+5.  Open the Script Editor (`Window > Script Editor`).
+6.  Run a simple script to randomize and capture.
+
+```python
+import omni.replicator.core as rep
+
+with rep.new_layer():
+    camera = rep.create.camera(position=(0, 0, 1))
+    render_product = rep.create.render_product(camera, (1024, 1024))
+
+    def randomize_can():
+        can = rep.create.from_usd(".../coke_can.usd")
+        with can:
+            rep.modify.pose(
+                position=rep.distribution.uniform((-0.5, -0.5, 0), (0.5, 0.5, 0)),
+                rotation=rep.distribution.uniform((0,0,0), (360,360,360))
+            )
+        return can
+
+    rep.randomizer.register(randomize_can)
+
+    with rep.trigger.on_frame(num_frames=100):
+        rep.randomizer.randomize_can()
+        
+    writer = rep.WriterRegistry.get("BasicWriter")
+    writer.initialize(output_dir="~/output", rgb=True, bounding_box_2d_tight=True)
+    writer.attach(render_product)
+```
+Click **Run**. You will see the can dancing on the screen. Check your `~/output` folder. You have 100 perfectly labeled images!
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Advanced SDG: Domain Randomization & VLA Training
+
+**Closing the Sim-to-Real Gap with Visual Variations**
+
+If you train a Vision-Language-Action (VLA) model on synthetic data that looks "too perfect," it will fail in the grainy, messy real world.
+We use **Domain Randomization (DR)** heavily in Replicator.
+
+**Parameters to Randomize:**
+1.  **Textures**: Swap materials on the floor and walls.
+2.  **Lighting**: Change intensity, temperature (color), and position.
+3.  **Distractors**: Spawn random "flying geometric shapes" or other objects to force the AI to ignore clutter.
+4.  **Camera Noise**: Inject ISO noise, motion blur, and lens distortion.
+
+### Generating Annotations
+Replicator provides Ground Truth data that is impossible to get in reality:
+*   **Bounding Boxes (2D/3D)**: For Object Detection (YOLO).
+*   **Segmentation Masks**: Pixel-level classification (U-Net).
+*   **Depth Maps**: Perfect distance per pixel.
+*   **Normals**: Surface orientation.
+*   **Skeleton 2D/3D**: For Human Pose Estimation.
+
+### Training Pipeline
+1.  **Generate**: Run Replicator to create 100k images (50GB dataset).
+2.  **Format**: Convert Replicator output (JSON) to KITTI or COCO format.
+3.  **Train**: Use NVIDIA TAO Toolkit or PyTorch to train your model (e.g., YOLOv8).
+4.  **Inference**: Deploy the `.engine` file to the Jetson Orin.
+
+**Example: Industrial Bin Picking**
+For the capstone, you might need the robot to pick up a specific tool.
+*   Create a USD of the tool.
+*   Fill a virtual bin with 50 copies of the tool (physics enabled so they pile up naturally).
+*   Randomize bin texture.
+*   Capture Segmentation Masks.
+*   Train a model to find the "Handle" of the tool in a pile.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Be-tehasha Data: Synthetic Data Generation
+
+**Asli Tasveeron Ka Masla**
+
+AI ko sikhane ke liye ke "Coke Can" kaisa dikhta hai, aap ko 10,000 tasveerein chahiye.
+Khud mobile se 10,000 tasveerein lena bohat mushkil kaam hai.
+
+**Hal: SDG**
+Isaac Sim mein hum ye tasveerein computer se banwatay hain.
+Hum computer ko kehte hain:
+1.  "Coke Can paida karo."
+2.  "Roshni badlo."
+3.  "Can ki jagah badlo."
+4.  "Tasveer khincho."
+5.  "Ye kaam 10,000 baar karo."
+
+Isay **Synthetic Data** kehte hain. Is ka faida ye hai ke computer ko pehle se pata hai ke Can tasveer mein kahan hai (Labeling ki zaroorat nahi).
+
+### Replicator Tool
+
+Isaac Sim mein **Omniverse Replicator** use hota hai.
+Aap Python script likhte hain jo cheezon ko hilata hai aur tasveerein leta rehta hai.
+Result mein aap ko ek folder milta hai jis mein tasveerein aur un ke labels (text files) hotay hain.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Advanced SDG aur Domain Randomization
+
+**Sim-to-Real Gap Khatam Karna**
+
+Agar aap AI ko sirf saaf suthri computer images par train karein gay, to wo asli dunya ki dhundli images par fail ho jaye gi.
+Hum **Domain Randomization** use karte hain.
+
+**Kya Randomize Karein?**
+1.  **Textures**: Zameen aur deewaron ke rang badlein.
+2.  **Roshni**: Kabhi tez dhoop, kabhi kamre ki light.
+3.  **Shor (Noise)**: Tasveer mein jaan boojh kar danay (grains) aur dhundlahat (blur) dalein.
+4.  **Rukawatein**: Idhar udhar random cheezain (Distractors) phenk dein taake AI sirf apne maqsad par focus karna seekhay.
+
+### Annotations (Labels)
+Replicator wo data de sakta hai jo insan nahi de saktay:
+*   **Segmentation Masks**: Tasveer ke har pixel ka label.
+*   **Depth Maps**: Har pixel ka faasla.
+*   **Skeleton**: Insan ki haddiyon ka dhancha (Pose estimation ke liye).
+
+**Pipeline**
+1.  **Generate**: 1 Lakh tasveerein banayein.
+2.  **Format**: Data ko COCO format mein convert karein.
+3.  **Train**: NVIDIA TAO Toolkit use kar ke model train karein.
+4.  **Deploy**: Model ko robot (Jetson) mein dalein.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the main advantage of Synthetic Data over Real Data?",
+    options: [
+      "It looks more realistic",
+      "It comes with perfect, automatic labels (ground truth) and is generated instantly",
+      "It uses less hard drive space",
+      "It is required by law"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Which tool in Isaac Sim is used for scripting data generation?",
+    options: ["Isaac Gym", "Omniverse Replicator", "PhysX", "Audio2Face"],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar aap synthetic data mein 'Distractors' (faltu cheezain) nahi dalenge to kya hoga?",
+    options: [
+      "AI sirf saaf background par kaam kare gi, clutter mein fail ho jaye gi",
+      "Simulation slow ho jaye gi",
+      "Tasveerein achi nahi aayengi",
+      "Robot ghabra jaye ga"
+    ],
+    correctAnswer: 0
+  }
+]} />

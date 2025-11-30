@@ -1,0 +1,151 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 3.1 The Industrial Metaverse: NVIDIA Isaac Sim
+
+<Personalization level="novice" language="english">
+
+## Introduction to Isaac Sim
+
+**Why move from Gazebo to Isaac Sim?**
+
+Gazebo is great for learning. But major car companies (BMW, Mercedes) and robot companies (Amazon Robotics) use **NVIDIA Isaac Sim**.
+*   **Photorealism**: It looks exactly like the real world (Ray Tracing).
+*   **GPU Physics**: It simulates thousands of robots at once using the graphics card.
+*   **AI Ready**: It generates data specifically for training neural networks.
+
+**The Omniverse**
+Isaac Sim is built on **NVIDIA Omniverse**. Think of Omniverse as "Google Docs for 3D".
+*   An architect can work on the building in Revit.
+*   A game designer can work on textures in Adobe Substance.
+*   A roboticist can add a robot in Isaac Sim.
+*   *All happen in the same world at the same time.*
+
+### Requirements check
+To run this, you **MUST** have an NVIDIA RTX GPU (RTX 3060 or better). It will not work on Intel graphics or standard Macs.
+
+### The Interface
+1.  **Viewport**: The 3D world (Ray Traced).
+2.  **Stage**: The list of objects (Hierarchy).
+3.  **Property Panel**: Details of the selected object.
+4.  **Action Graph**: A visual coding tool (connecting boxes) to make things move without writing Python code.
+
+### Your First Step
+1.  Open Omniverse Launcher -> Library -> Isaac Sim -> Launch.
+2.  Wait (Shader compilation takes time).
+3.  Go to `Create > Isaac > Robots > Ant`.
+4.  Press Play. The Ant robot will drop to the ground.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Under the Hood: PhysX 5 & Fabric
+
+**Why Isaac Sim is a Paradigm Shift**
+
+Traditional simulators (Gazebo/MuJoCo) are CPU-bound.
+Isaac Sim uses **PhysX 5** on the GPU.
+*   **Parallelism**: Instead of solving one robot with 20 joints, it solves 10,000 environments in parallel on thousands of CUDA cores. This is the secret to modern Reinforcement Learning (Isaac Gym).
+
+**Fabric (USD-PhysX Bridge)**
+Omniverse uses **USD (Universal Scene Description)** to store data.
+Writing to USD is slow (disk I/O).
+**Fabric** is a high-performance in-memory layer that bypasses USD for physics updates.
+*   *Implication*: When checking robot state in Python, use the `Tensor API`, not the USD API. The USD API will give you the state at the start of the frame. The Tensor API gives you the live physics state from the GPU memory.
+
+### Action Graph (OmniGraph)
+Isaac Sim allows visual programming for event-driven logic.
+*   *Use Case*: "If the robot touches the box, change the box color to Red."
+*   Instead of writing a Python loop, you connect:
+    `OnCollision` node -> `WritePrimAttribute` node.
+This runs in C++ inside the engine, avoiding the Python Global Interpreter Lock (GIL).
+
+### Extension System
+Isaac Sim is modular. Everything is an extension.
+If you need a custom sensor, you write a python extension using `kit`.
+*   Location: `Window > Extensions`.
+*   Search for `isaac.ros2_bridge`. Ensure it is enabled to talk to ROS.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Sanati Metaverse: NVIDIA Isaac Sim
+
+**Gazebo Chor Kar Isaac Sim Kyun?**
+
+Gazebo seekhne ke liye acha hai. Lekin bari companiyan (BMW, Amazon) **NVIDIA Isaac Sim** use karti hain.
+*   **Asliyat**: Yeh bilkul haqeeqi dunya jaisa dikhta hai.
+*   **GPU Physics**: Yeh graphics card ki taqat use karta hai, isliye hazaron robots ek sath chal saktay hain.
+*   **AI Ready**: Yeh AI ko sikhane ke liye behtareen data banata hai.
+
+**Omniverse**
+Isaac Sim **NVIDIA Omniverse** par bana hai. Isay samjhein "3D ka Google Docs".
+Mukhtalif log (Architect, Designer, Engineer) ek hi waqt mein ek hi dunya mein kaam kar sakte hain.
+
+### Zaroori Hardware
+Isay chalane ke liye **NVIDIA RTX GPU** hona lazmi hai. Yeh aam laptop ya Macbook par nahi chalega.
+
+### Interface
+1.  **Viewport**: 3D dunya.
+2.  **Stage**: Cheezon ki list.
+3.  **Action Graph**: Baghair code likhay logic banane ka tareeqa (Dibbray jor kar).
+
+### Pehla Qadam
+1.  Omniverse Launcher kholein -> Isaac Sim -> Launch.
+2.  Intezar karein (Pehli baar der lagti hai).
+3.  `Create > Isaac > Robots > Ant` par click karein.
+4.  Play dabayein. Robot zameen par gir jaye ga.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Gehrai Mein: PhysX 5 aur Fabric
+
+**Isaac Sim Kyun Mukhtalif Hai?**
+
+Puranay simulators (Gazebo) CPU par chalte thay.
+Isaac Sim **GPU (PhysX 5)** use karta hai.
+*   **Parallelism**: Ek robot chalane ki bajaye, ye CUDA cores use kar ke 10,000 robots ek sath simulate karta hai. Yehi wajah hai ke aaj kal robot kuch ghanton mein chalna seekh lete hain (Reinforcement Learning).
+
+**Fabric (Tez Tareen Data)**
+Omniverse data save karne ke liye **USD** format use karta hai.
+Lekin USD slow hai.
+**Fabric** ek memory layer hai jo USD ko bypass karti hai.
+*   *Nukta*: Jab aap Python mein robot ki speed check karein, to `Tensor API` use karein. Agar aap USD API use karenge to purana data milega. Tensor API seedha GPU se taaza data deti hai.
+
+### Action Graph (OmniGraph)
+Aap visual programming (nodes jor kar) logic bana sakte hain.
+*   *Misal*: "Agar robot dabay se takraye to dabba laal ho jaye."
+*   Is ke liye Python likhne ki zaroorat nahi. Aap `OnCollision` node ko `SetColor` node se jor dein. Yeh C++ mein chalta hai aur bohat tez hota hai.
+
+### Extensions
+Isaac Sim mein har cheez ek "Extension" hai.
+Agar aap ko ROS se baat karni hai, to `Window > Extensions` mein jayen aur `isaac.ros2_bridge` ko on karein.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What hardware component is mandatory to run NVIDIA Isaac Sim?",
+    options: ["Intel i9 CPU", "NVIDIA RTX GPU", "32GB RAM", "SSD"],
+    correctAnswer: 1
+  },
+  {
+    question: "What is the underlying file format used by Omniverse?",
+    options: ["URDF", "SDF", "USD (Universal Scene Description)", "FBX"],
+    correctAnswer: 2
+  },
+  {
+    question: "Urdu: Isaac Sim mein physics calculation kahan hoti hai?",
+    options: [
+      "CPU par",
+      "GPU par (CUDA cores)",
+      "Cloud par",
+      "Hard disk par"
+    ],
+    correctAnswer: 1
+  }
+]} />

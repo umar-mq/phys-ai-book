@@ -1,0 +1,194 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 4.4 Structuring Thought: LangChain for Robotics
+
+<Personalization level="novice" language="english">
+
+## Putting the Pieces Together
+
+**What is LangChain?**
+We have many pieces now:
+*   Whisper (Ears)
+*   LLM (Brain)
+*   ROS 2 Functions (Hands/Legs)
+
+**LangChain** is a library that glues these together. It helps create a **Sequence** (Chain).
+1.  User speaks -> 2. Whisper translates -> 3. LangChain formats prompt -> 4. LLM decides plan -> 5. LangChain parses JSON -> 6. Robot acts.
+
+**Memory**
+A normal function forgets what you said 5 seconds ago.
+LangChain gives the robot **Memory**.
+*   *User*: "Go to the kitchen."
+*   *Robot*: (Goes to kitchen).
+*   *User*: "Pick it up."
+*   *Robot (with Memory)*: "Pick *what* up? Oh, looking at previous history, we are in the kitchen, maybe they mean an object here?"
+
+### Simple Chain Example
+
+```python
+from langchain.llms import OpenAI
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+
+# 1. The Brain
+llm = OpenAI(temperature=0)
+
+# 2. The Prompt Template
+template = """
+User command: {command}
+Convert this to a robot action: navigate(location).
+Action:
+"""
+
+prompt = PromptTemplate(template=template, input_variables=["command"])
+
+# 3. The Chain
+robot_chain = LLMChain(llm=llm, prompt=prompt)
+
+# 4. Run
+response = robot_chain.run("Go to the bedroom")
+print(response) # Output: navigate("bedroom")
+```
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## ReAct Agents & Tool Use
+
+**Beyond Simple Chains: Agents**
+
+A Chain is hard-coded (A -> B -> C).
+An **Agent** uses the LLM to *decide* what to do next. It enters a loop: **Reason -> Act -> Observe**.
+
+**The ReAct Pattern**
+1.  **Thought**: User wants water. I should check if I have water.
+2.  **Action**: Call tool `check_inventory()`.
+3.  **Observation**: Inventory is empty.
+4.  **Thought**: I need to find water. I should look in the kitchen.
+5.  **Action**: Call tool `navigate("kitchen")`.
+6.  **Observation**: Arrived in kitchen.
+
+**Implementing a ROS 2 Agent with LangChain**
+
+```python
+from langchain.agents import initialize_agent, Tool, AgentType
+from langchain.tools import BaseTool
+
+# Define ROS 2 Tools
+class NavigateTool(BaseTool):
+    name = "navigate"
+    description = "Move to a location. Input: location name string."
+    def _run(self, query: str):
+        # Call ROS 2 Action Server here
+        return f"Navigating to {query}..."
+
+class ScanTool(BaseTool):
+    name = "scan_scene"
+    description = "Look around and list objects."
+    def _run(self, query: str):
+        # Call VLM / YOLO here
+        return "I see an apple and a cup."
+
+tools = [NavigateTool(), ScanTool()]
+
+# Initialize Agent
+agent = initialize_agent(
+    tools, 
+    llm, 
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
+    verbose=True
+)
+
+# Run
+agent.run("Find me something to eat.")
+```
+**Output Trace**:
+*   *Thought*: User wants food. I should scan to find food.
+*   *Action*: `scan_scene()`
+*   *Observation*: "I see an apple and a cup."
+*   *Thought*: Apple is food. I should go to it.
+*   *Action*: `navigate("apple")`...
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Soch Ko Tarteeb Dena: LangChain
+
+**LangChain Kya Hai?**
+Humaray paas bohat saray tukray hain: Kaan (Whisper), Dimagh (LLM), aur Haath (ROS 2).
+**LangChain** wo gond (glue) hai jo in sab ko jorta hai.
+
+**Memory (Yaadasht)**
+Aam computer bhool jata hai ke abhi kya baat hui thi.
+LangChain robot ko yaadasht deta hai.
+*   *Aap*: "Kitchen mein jao."
+*   *Robot*: (Chala gaya).
+*   *Aap*: "Wo utha lo."
+*   *Robot*: "Kya utha loon? Acha, pichli baat yaad karkay samajh aaya ke hum kitchen mein hain, shayad koi cheez uthani hai."
+
+### Chain Ki Misal
+
+Hum code mein ek **Zanjeer (Chain)** banate hain:
+1.  Input (User ka hukum).
+2.  Prompt (Robot ko samjhana).
+3.  LLM (Jawab banana).
+4.  Output (Action lena).
+
+Ye code likhna bohat aasaan kar deta hai.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## ReAct Agents
+
+**Chain se Aage: Agents**
+
+Chain seedhi hoti hai (A ke baad B).
+**Agent** khud faisla karta hai ke agla qadam kya hona chahiye.
+Isay **Reason -> Act -> Observe** (Socho -> Karo -> Dekho) kehte hain.
+
+**ReAct Pattern Misal**
+1.  **Soch**: User ko paani chahiye. Kya mere paas paani hai?
+2.  **Kaam**: `check_inventory()` tool chalaya.
+3.  **Mushahida**: Inventory khali hai.
+4.  **Soch**: Mujhe paani dhoondna parega. Kitchen jata hoon.
+5.  **Kaam**: `navigate("kitchen")` tool chalaya.
+
+**Python Implementation**
+Hum LangChain mein "Tools" banate hain. Har Tool ek ROS 2 function hota hai (jaise chalna, dekhna).
+Phir hum Agent ko kehte hain: *"Ye lo tools, ab user ka masla hal karo."*
+Agent khud tools ko zaroorat ke mutabiq use karta hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What feature of LangChain allows the robot to remember previous commands?",
+    options: ["Memory", "Chains", "Prompts", "Tokens"],
+    correctAnswer: 0
+  },
+  {
+    question: "What is the ReAct pattern in AI Agents?",
+    options: [
+      "Reacting emotionally to insults",
+      "Reason, Act, Observe (A loop of thinking and doing)",
+      "A Javascript library for websites",
+      "Repeating the same action"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agent aur Chain mein kya farq hai?",
+    options: [
+      "Chain sakht hoti hai (fixed sequence), Agent khud faisla karta hai (dynamic)",
+      "Agent chota hota hai",
+      "Chain mehngi hoti hai",
+      "Koi farq nahi"
+    ],
+    correctAnswer: 0
+  }
+]} />

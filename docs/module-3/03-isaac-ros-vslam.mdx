@@ -1,0 +1,198 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 3.3 The Sense of Direction: Visual SLAM
+
+<Personalization level="novice" language="english">
+
+## How Robots Know Where They Are
+
+**The Problem: "I am lost"**
+Imagine waking up in a dark room. You don't know where you are. You reach out, feel a table, and think: *"Ah, I am in the living room."*
+Robots have the same problem.
+*   **GPS**: Great for cars, terrible for indoor robots (roofs block the signal).
+*   **Odometry**: Counting wheel turns. If the wheels slip, the robot gets lost.
+
+**The Solution: VSLAM**
+**V**isual **S**imultaneous **L**ocalization **A**nd **M**apping.
+The robot uses cameras to look at "Features" (corners, edges, posters).
+1.  It sees a poster.
+2.  It moves.
+3.  It sees the poster again from a different angle.
+4.  Math calculates how much the robot moved.
+
+### NVIDIA Isaac ROS VSLAM
+Writing VSLAM code from scratch is extremely hard. NVIDIA provides a pre-made package that runs on the GPU (Jetson or RTX). It is fast and accurate.
+
+**Setting up the Scene in Isaac Sim**
+To test VSLAM, we need a robot with **Stereo Cameras** (Two eyes).
+1.  Open Isaac Sim.
+2.  Add a robot (e.g., Carter or a custom URDF).
+3.  Add two cameras: `Left_Cam` and `Right_Cam`.
+4.  Use the **Action Graph** to publish these images to ROS 2 topics:
+    *   `/camera/left/image_raw`
+    *   `/camera/right/image_raw`
+    *   `/camera/left/camera_info`
+
+### Launching the VSLAM Node
+On your workstation (with ROS 2 installed):
+
+```bash
+sudo apt install ros-humble-isaac-ros-visual-slam
+source /opt/ros/humble/setup.bash
+
+# Run the launch file provided by NVIDIA
+ros2 launch isaac_ros_visual_slam isaac_ros_visual_slam_isaac_sim.launch.py
+```
+
+**What to look for:**
+Open `rviz2`.
+1.  Add **TF**. You should see the `map` frame connects to `odom`.
+2.  Add **PointCloud2**. You might see a sparse cloud of dots representing the features the robot is tracking.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Hardware-Accelerated VSLAM (Elbrus)
+
+**The VSLAM Pipeline**
+
+NVIDIA's Isaac ROS VSLAM (internally codenamed "Elbrus") is a best-in-class VIO (Visual Inertial Odometry) system.
+It combines:
+1.  **Visual Odometry**: Tracking features across frames (Optical Flow).
+2.  **IMU Fusion**: Integrating accelerometer/gyroscope data to handle rapid movements where motion blur blinds the camera.
+3.  **Loop Closure**: Recognizing a place visited 10 minutes ago to correct accumulated drift.
+
+**Why Isaac ROS? (NITROS)**
+Standard ROS nodes use CPU for processing. Copying images CPU->GPU->CPU is slow.
+Isaac ROS uses **NITROS (NVIDIA Isaac Transport for ROS)**, which leverages shared memory and CUDA. The image never leaves the GPU memory.
+*   *Result*: 60 FPS VSLAM on a Jetson Orin Nano, leaving the CPU free for your Python logic.
+
+### Configuration Parameters
+
+To tune VSLAM for a Humanoid:
+1.  **enable_imu_fusion**: Must be `true`. Humanoids wobble. Visual-only approaches fail during footsteps.
+2.  **grav_bias**: Calibrate your IMU gravity vector precisely.
+3.  **key_frame_processing_interval**: If running on weak hardware, increase this to skip frames.
+
+**Graph Setup in Isaac Sim**
+You must construct an OmniGraph that outputs:
+1.  Stereo RGB Images.
+2.  Camera Info (Intrinsics $K$ matrix).
+3.  IMU Data (Linear Accel + Angular Vel).
+*   *Critical*: The timestamps of Camera and IMU must be synchronized. Isaac Sim handles this via the `ROS2 Context` node using simulation time.
+
+### Troubleshooting: "The Drift"
+If your robot is standing still in Isaac Sim but the VSLAM path shows it flying away:
+1.  **Check TF**: Is the transform between `base_link` and `camera_optical_frame` correct?
+2.  **Check IMU Noise**: Did you add too much noise in the simulation?
+3.  **Lighting**: Is the scene too dark? VSLAM needs texture. A white wall is a VSLAM killer.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Rasta Dhoondne Ki Hiss: Visual SLAM
+
+**Robot Ko Kaise Pata Chalta Hai Ke Wo Kahan Hai?**
+
+**Masla**:
+Sochiye aap andhere kamray mein uthain. Aap ko nahi pata aap kahan hain. Aap deewar tatolte hain aur kehte hain: *"Acha, main kitchen mein hoon."*
+Robot ka bhi yehi masla hai.
+*   **GPS**: Gaarion ke liye acha hai, lekin chat (roof) ke neechay kaam nahi karta.
+*   **Pahiye Ginna (Odometry)**: Agar pahiya phisal jaye, to robot ghalat hisab laga leta hai.
+
+**Hal: VSLAM**
+Is ka matlab hai aankhon (Camera) se dekh kar naqsha banana aur apni jagah pehchanna.
+Robot deewaron ke konay aur design dekhta hai. Jab wo chalta hai, to wo design hilta hai. Computer hisab lagata hai ke robot kitna chala.
+
+### NVIDIA Isaac ROS VSLAM
+VSLAM ka code likhna bohat mushkil hai. NVIDIA ne bana banaya software diya hai jo GPU par chalta hai.
+
+**Isaac Sim Setup**
+Humein ek robot chahiye jis ki **Do Aankhein** (Stereo Cameras) hon.
+1.  Isaac Sim kholein.
+2.  Robot dalein.
+3.  Do cameras lagayein: `Left` aur `Right`.
+4.  **Action Graph** use kar ke in cameras ki video ROS 2 par bhejein.
+
+### Software Chalana
+Apne computer par terminal kholein:
+
+```bash
+# NVIDIA ka package install karein
+sudo apt install ros-humble-isaac-ros-visual-slam
+
+# Launch karein
+ros2 launch isaac_ros_visual_slam isaac_ros_visual_slam_isaac_sim.launch.py
+```
+
+**Rviz2 Mein Dekhna**
+Rviz2 kholein. Agar sab theek hai, to `map` frame `odom` frame se jurr jaye ga. Aap ko robot ka rasta banta hua nazar aayega.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Hardware-Accelerated VSLAM (Elbrus)
+
+**VSLAM Kaise Kaam Karta Hai?**
+
+NVIDIA ka Isaac ROS VSLAM (jise "Elbrus" kehte hain) ek VIO system hai.
+Yeh teen cheezein milata hai:
+1.  **Visual Odometry**: Tasveer mein cheezon ko track karna.
+2.  **IMU Fusion**: Agar robot tez hiley aur tasveer dhundli ho jaye, to ye Gyroscope ka data use karta hai.
+3.  **Loop Closure**: Agar robot ghoom kar wapis purani jagah aaye, to ye pehchan leta hai aur apna naqsha theek kar leta hai (Drift correction).
+
+**NITROS Technology**
+Aam ROS nodes CPU use karte hain. Tasveer ko CPU se GPU aur phir wapis lana slow hota hai.
+Isaac ROS **NITROS** use karta hai. Tasveer GPU memory mein hi rehti hai. Is se speed bohat tez ho jati hai (60 FPS).
+
+### Configuration
+
+Humanoid Robot ke liye settings:
+1.  **enable_imu_fusion**: `true` hona chahiye. Humanoid chaltay waqt hilta hai, sirf camera kaafi nahi.
+2.  **Lighting**: Agar kamray mein andhera hai ya deewarein bilkul safed hain, to VSLAM fail ho jaye ga. Usay "Texture" chahiye (koi design ya pattern).
+
+**Isaac Sim Graph**
+Aap ko OmniGraph banana parega jo:
+1.  Do Tasveerein (Stereo).
+2.  Camera Info (Lens ki maloomat).
+3.  IMU Data.
+bheje. *Zaroori Baat*: Sab ka waqt (timestamp) same hona chahiye warna hisab ghalat ho jaye ga.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What does VSLAM stand for?",
+    options: [
+      "Very Slow Large Area Movement",
+      "Visual Simultaneous Localization and Mapping",
+      "Video System Local Area Map",
+      "Virtual System Logic and Memory"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Why is IMU fusion critical for VSLAM on a humanoid robot?",
+    options: [
+      "To save battery",
+      "Because humanoids have jerky motion which causes motion blur in cameras",
+      "It is not critical",
+      "Because IMUs are expensive"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: VSLAM ke liye kaisa mahol (environment) sab se bura hai?",
+    options: [
+      "Bohat saari cheezon wala kamra",
+      "Bilkul safed deewaron wala kamra (Featureless)",
+      "Dhoop wala kamra",
+      "Baghicha"
+    ],
+    correctAnswer: 1
+  }
+]} />

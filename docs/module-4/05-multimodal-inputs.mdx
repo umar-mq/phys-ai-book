@@ -1,0 +1,236 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 4.5 Multimodal Perception: CLIP & SigLIP
+
+<Personalization level="novice" language="english">
+
+## Seeing Language
+
+**The Problem with Standard Computer Vision**
+Traditional AI (like YOLO) is limited. You train it on "Cats" and "Dogs". If you show it a "Zebra", it gets confused. It has a **Fixed Vocabulary**.
+But humans (and robots) encounter new things every day. If I say "Find the shiny red toy that looks like a dragon", a normal robot fails because it doesn't have a "Shiny Red Dragon Toy" class in its database.
+
+**The Solution: Multimodal AI (CLIP)**
+OpenAI created **CLIP** (Contrastive Language-Image Pre-training).
+It connects **Text** and **Images** in the same mathematical space.
+*   The math representation (vector) for a picture of a dog is very close to the math representation for the word "Dog".
+*   Crucially, it is also close to "A furry animal" or "Man's best friend".
+
+This allows **Open-Vocabulary Detection**. You don't need to retrain the robot. You just type what you are looking for.
+
+### Using CLIP for Zero-Shot Detection
+
+We will use a library called `owl-vit` or `NanoSAM` (Segment Anything) powered by CLIP embeddings on the Jetson.
+
+**Scenario**:
+You want the robot to find his charging dock. You haven't trained it on "Charging Dock".
+1.  **Input Text**: "A white plastic charging station with a green light."
+2.  **Input Image**: The robot's camera feed.
+3.  **Process**: The AI compares the text to every part of the image.
+4.  **Result**: It draws a box around the dock because it matches the description best.
+
+**Python Implementation (Concept)**
+
+```python
+from transformers import Owlv2Processor, Owlv2ForObjectDetection
+from PIL import Image
+
+# Load model (Runs on CPU/GPU)
+processor = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
+model = Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble")
+
+def find_object(image, text_description):
+    inputs = processor(text=text_description, images=image, return_tensors="pt")
+    outputs = model(**inputs)
+    
+    # The model returns bounding boxes for anything matching the text
+    target_sizes = torch.tensor([image.size[::-1]])
+    results = processor.post_process_object_detection(outputs, target_sizes=target_sizes, threshold=0.1)
+    
+    return results[0]["boxes"] # Locations of the object
+```
+
+### Fusion: Audio + Vision
+What if we combine Whisper + CLIP?
+1.  **User (Voice)**: "Pick up the... uh... blue thingy."
+2.  **Whisper**: Transcribes text "blue thingy".
+3.  **CLIP**: Looks at the table. Sees a Red Cup, Blue Pen, and Green Apple.
+4.  **Matching**: "Blue thingy" matches "Blue Pen" best.
+5.  **Action**: Robot picks up the pen.
+This is **Multimodal Fusion**. The robot uses context to understand vague commands.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Embedding Spaces & SigLIP
+
+**Contrastive Learning Dynamics**
+
+The core of VLA (Vision-Language-Action) is the alignment of feature spaces.
+*   **CLIP (OpenAI)**: Uses a contrastive loss to maximize the cosine similarity between correct image-text pairs and minimize incorrect ones.
+*   **SigLIP (Google)**: Sigmoid Loss for Language Image Pre-training. It decouples the normalization term (Softmax) used in CLIP, allowing for scaling to much larger batch sizes and providing better performance on edge devices.
+
+**Zero-Shot vs. Few-Shot**
+While Zero-Shot (CLIP) is powerful, it lacks spatial precision for grasping.
+For the Capstone, we use **NanoLLaVA** or **BakLLaVA** (on Jetson). These are **Visual Instruction Tuning** models.
+*   *Architecture*: A Visual Encoder (SigLIP/CLIP) + Projection Layer + LLM (Llama-3).
+*   *Input*: Image tokens + Text tokens.
+*   *Output*: Text (which can be parsed into actions).
+
+### Integrating with ROS 2 (The Node Structure)
+
+Running these models inside a ROS node requires careful threading to avoid blocking the DDS callbacks.
+
+```python
+class MultimodalAgent(Node):
+    def __init__(self):
+        super().__init__('vla_agent')
+        # Subscribers
+        self.sub_img = self.create_subscription(Image, '/camera/rgb', self.img_cb, 1)
+        self.sub_txt = self.create_subscription(String, '/voice_command', self.txt_cb, 10)
+        
+        # State
+        self.latest_image = None
+        self.embedding_db = {} # Database of known object embeddings
+
+    def process_request(self, text_command):
+        # 1. Encode Text
+        text_emb = self.encoder.encode_text(text_command)
+        
+        # 2. Encode Image Patches (Sliding Window)
+        img_patches = extract_patches(self.latest_image)
+        img_embs = self.encoder.encode_images(img_patches)
+        
+        # 3. Vector Similarity Search
+        # Find patch with highest dot product similarity to text
+        scores = torch.matmul(img_embs, text_emb.T)
+        best_patch_idx = torch.argmax(scores)
+        
+        # 4. Project 2D patch to 3D world (Deprojection)
+        # Using Depth Camera info
+        x, y, z = self.deproject(best_patch_idx)
+        
+        # 5. Send Action
+        self.send_goal(x, y, z)
+```
+
+**Latency Optimization (TensorRT)**
+SigLIP/CLIP encoders must be exported to TensorRT.
+On Jetson Orin Nano, standard PyTorch inference for CLIP ViT-L/14 takes ~400ms. TensorRT reduces this to ~60ms, enabling roughly 15Hz perception loops, which is sufficient for "Look-and-Move" behaviors but too slow for visual servoing. For visual servoing, track the object using a lightweight tracker (KCF/CSRT) initialized by CLIP.
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Multimodal Perception: Dekhna aur Samajhna
+
+**Aam Computer Vision Ka Masla**
+Purani AI (Jaise YOLO) sirf wo cheezain pehchanti hai jo usay sikhayi gayi hon. Agar aap ne usay "Billi" sikhaya hai, to wo "Zebra" ko nahi pehchane gi.
+Lekin asli dunya mein hum nayi cheezain dekhte hain. Agar main kahoon "Wo laal rang ka chamakdar khilona dhoondo", to aam robot fail ho jaye ga.
+
+**Hal: CLIP (Multimodal AI)**
+OpenAI ne **CLIP** banaya hai.
+Yeh **Text** (Lafz) aur **Image** (Tasveer) ko ek sath jodta hai.
+*   Computer ke liye "Kutta" lafz aur "Kuttay ki tasveer" ka math code (vector) taqreeban aik jaisa hota hai.
+*   Isi tarah "Wafadaar janwar" ka code bhi waisa hi hota hai.
+
+Is ka faida ye hai ke aap robot ko bina training diye nayi cheezain dhoondne ka keh sakte hain (**Zero-Shot Detection**).
+
+### Misaal: Charging Dock Dhoondna
+
+1.  **Aap ne bola**: "Safed rang ka charger jahan hari light jal rahi hai."
+2.  **Robot ne dekha**: Camera feed.
+3.  **AI ka kaam**: CLIP ne aap ke jumlay ko tasveer ke har hissay se match kiya.
+4.  **Nateeja**: Usay wo charger mil gaya, halankay us ne pehle kabhi charger nahi dekha tha.
+
+### Fusion: Awaaz aur Nazar
+Agar hum Whisper aur CLIP ko mila dein:
+1.  **User**: "Wo... neeli wali cheez uthao."
+2.  **Whisper**: Text banaya "neeli wali cheez".
+3.  **CLIP**: Table par dekha. Wahan Laal Cup, Neela Pen, aur Hara Seb tha.
+4.  **Faisla**: "Neeli cheez" sab se zyada "Neela Pen" se match hoti hai.
+5.  **Action**: Robot ne pen utha liya.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Embedding Spaces aur SigLIP
+
+**Lafzon aur Tasveeron ka Milap**
+
+VLA (Vision-Language-Action) ki bunyad ye hai ke Lafz aur Tasveer ek hi "Space" mein hon.
+*   **CLIP**: Ye Contrastive Learning use karta hai. Ye koshish karta hai ke Sahi Tasveer aur Sahi Text ka faasla kam ho, aur Ghalat ka zyada ho.
+*   **SigLIP**: Google ka naya model hai. Ye CLIP se behtar aur tez hai, khaas taur par Jetson jaisay chotay computers par.
+
+**NanoLLaVA (Visual Instruction Tuning)**
+Capstone project ke liye hum **NanoLLaVA** use karenge.
+Ye ek chota model hai jo text aur tasveer dono samajhta hai.
+*   *Input*: Camera ki tasveer + User ka sawal ("Kya main road paar kar sakta hoon?").
+*   *Output*: Jawab ("Nahi, samne se gaari aa rahi hai").
+
+### ROS 2 Integration
+
+Jab hum in models ko ROS node mein chalate hain, to humein speed ka khayal rakhna parta hai.
+
+```python
+class MultimodalAgent(Node):
+    def process_request(self, text_command):
+        # 1. Text ko number (embedding) mein badlo
+        text_emb = self.encoder.encode_text(text_command)
+        
+        # 2. Tasveer ke tukray (patches) ko number mein badlo
+        img_embs = self.encoder.encode_images(current_image)
+        
+        # 3. Match karo (Dot Product)
+        # Jis tukray ka number text ke number se sab se zyada milta hai, wo hamara object hai.
+        best_match = find_similarity(img_embs, text_emb)
+        
+        # 4. 2D pixel ko 3D dunya mein convert karo (Depth camera se)
+        x, y, z = deproject(best_match)
+        
+        # 5. Robot ko bhejo
+        self.send_goal(x, y, z)
+```
+
+**Latency Optimization**
+Jetson Orin Nano par CLIP chalana bhaari kaam hai (400ms).
+Hum **TensorRT** use kar ke isay 60ms tak laa sakte hain.
+Lekin phir bhi, agar robot taizi se hil raha hai, to 60ms bhi late hai. Is liye hum **Visual Servoing** ke liye CLIP use nahi karte, balkay ek halka tracker (KCF) use karte hain jo CLIP se initialize hota hai.
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "What is the key ability of CLIP (Contrastive Language-Image Pre-training)?",
+    options: [
+      "It can generate realistic videos",
+      "It connects text descriptions to images, allowing Zero-Shot detection",
+      "It drives the robot motors directly",
+      "It converts audio to text"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "In a multimodal robot pipeline, what is 'Deprojection'?",
+    options: [
+      "Projecting the robot's mood onto the user",
+      "Converting a 2D pixel coordinate (from an image) into a 3D real-world coordinate (x, y, z) using depth data",
+      "Turning off the projector",
+      "Deleting the project"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Agar robot ko 'Neela Pen' dhoondna hai, to CLIP model kya karta hai?",
+    options: [
+      "Internet par search karta hai",
+      "Lafz 'Neela Pen' aur camera ki tasveer ka muwazna (compare) karta hai",
+      "Pen banane wali factory ko call karta hai",
+      "Sirf neela rang dhoondta hai"
+    ],
+    correctAnswer: 1
+  }
+]} />

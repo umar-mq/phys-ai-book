@@ -1,0 +1,310 @@
+import Personalization from '@site/src/components/Personalization';
+import Quiz from '@site/src/components/Quiz';
+
+# 1.4 Interactive Communication: Services & Actions
+
+<Personalization level="novice" language="english">
+
+## Beyond Just Talking: Request and Response
+
+Topics are great for continuous data (like a camera stream). But sometimes, you want to ask a question and get an answer. Or you want to give a complex order.
+
+In ROS 2, we have two tools for this: **Services** and **Actions**.
+
+### 1. Services (The Fast Interaction)
+
+Think of a Service like **ordering a pizza**.
+1.  **Request**: "I want a Pepperoni Pizza."
+2.  **Processing**: The kitchen cooks it. You wait on the phone.
+3.  **Response**: "Here is your pizza."
+
+This is **Synchronous**. While you are waiting for the answer, you usually stop doing other things.
+
+**Use Case in Robots**:
+*   "Reset the Odometer."
+*   "Take a photo now."
+*   "Is the battery full?"
+
+**Implementing a Simple Service (Server):**
+Let's make a service that adds two numbers.
+
+```python
+from example_interfaces.srv import AddTwoInts
+import rclpy
+from rclpy.node import Node
+
+class AddTwoIntsServer(Node):
+    def __init__(self):
+        super().__init__('add_two_ints_server')
+        # Create Service
+        self.srv = self.create_service(AddTwoInts, 'add_two_ints', self.add_two_ints_callback)
+
+    def add_two_ints_callback(self, request, response):
+        # Do the math
+        response.sum = request.a + request.b
+        self.get_logger().info(f'Incoming request\na: {request.a} b: {request.b}')
+        return response
+
+def main():
+    rclpy.init()
+    node = AddTwoIntsServer()
+    rclpy.spin(node)
+    rclpy.shutdown()
+```
+
+### 2. Actions (The Long Interaction)
+
+Think of an Action like **hiring a contractor to build a house**.
+1.  **Goal**: "Build me a house."
+2.  **Feedback**: While they build, they tell you: "Foundation done", "Walls done", "Roof done".
+3.  **Result**: "House is finished."
+4.  **Cancel**: You can also say "Stop building!" midway.
+
+This is **Asynchronous**. You can go do other work while the house is being built.
+
+**Use Case in Robots**:
+*   "Navigate to the kitchen." (Takes 2 minutes. The robot needs to avoid obstacles).
+*   "Pick up the cup." (Requires planning, approaching, grasping).
+
+If you used a Service for "Navigate to Kitchen," your program would freeze for 2 minutes until the robot arrived. That is bad. With Actions, you can check sensors while moving.
+
+</Personalization>
+
+<Personalization level="expert" language="english">
+
+## Asynchronous Architecture & State Machines
+
+**Blocking vs Non-Blocking Control Architectures**
+
+In Physical AI, handling the "Time" dimension is critical.
+*   **Services** are fundamentally blocking calls from the client's perspective (unless handled via Futures).
+*   **Actions** are non-blocking and stateful.
+
+### 1. The Service Deadlock Trap
+
+A common pitfall in ROS 2 `rclpy` is calling a service *inside* a callback using `client.call()`.
+**Scenario**:
+1.  Node receives a topic message (Callback A).
+2.  Inside Callback A, it calls a Service (Synchronous).
+3.  The Node waits for the response.
+4.  BUT, the Node's Executor is blocked waiting for the response, so it cannot process the incoming response packet on the network stack.
+5.  **Result**: Deadlock. The node hangs forever.
+
+**Solution**: Use `call_async()` and yield execution, or use a `MultiThreadedExecutor`.
+
+```python
+# The Safe Way (Async)
+def send_request(self):
+    future = self.client.call_async(self.req)
+    future.add_done_callback(self.response_callback)
+```
+
+### 2. Actions: The Humanoid Control Primitive
+
+For a Humanoid robot, almost every movement is an Action.
+The Action Server implements a State Machine:
+1.  **Goal Received**: Validate parameters (Is the target reachable?).
+2.  **Goal Accepted**: Start trajectory planner.
+3.  **Executing**: Sending torque commands to motors at 500Hz.
+4.  **Feedback**: Publish current progress (distance to target) to the client.
+5.  **Preemption**: A safety monitor detects a child running in front. It sends a `Cancel` request. The robot must smoothly decelerate, not freeze.
+
+**Action Definition (.action file)**
+
+```text
+# Goal
+float32[] target_joints
+---
+# Result
+bool success
+string message
+---
+# Feedback
+float32 percent_complete
+float32 current_speed
+```
+
+### 3. Implementing an Action Server (Conceptual)
+
+Creating an Action Server requires handling the `GoalHandle`.
+
+```python
+async def execute_callback(self, goal_handle):
+    self.get_logger().info('Executing goal...')
+    
+    # Simulate a long task
+    for i in range(1, 10):
+        if goal_handle.is_cancel_requested:
+            goal_handle.canceled()
+            return ActionResult()
+        
+        # Publish Feedback
+        feedback_msg = MyAction.Feedback()
+        feedback_msg.percent_complete = i * 10.0
+        goal_handle.publish_feedback(feedback_msg)
+        time.sleep(1)
+
+    goal_handle.succeed()
+    result = MyAction.Result()
+    result.success = True
+    return result
+```
+*Note the `async` keyword. Actions in `rclpy` make heavy use of Python's asyncio library.*
+
+</Personalization>
+
+<Personalization level="novice" language="urdu">
+
+## Sawal Jawab Aur Lambay Kaam: Services & Actions
+
+**Sirf Batuni Hona Kaafi Nahi**
+
+Topics bohat achay hain data stream karne ke liye (jaise video). Lekin kabhi kabhi aapko sawal puchna hota hai aur jawab chahiye hota hai. Ya phir koi lamba hukum dena hota hai.
+
+ROS 2 mein iske liye **Services** aur **Actions** hain.
+
+### 1. Services (Jhat Pat Kaam)
+
+Service ko samjhein jaise **Pizza Order Karna**.
+1.  **Request (Darkhwast)**: "Mujhe Pizza chahiye."
+2.  **Processing**: Kitchen mein pizza ban raha hai. Aap phone par intezar kar rahe hain.
+3.  **Response (Jawab)**: "Yeh raha aap ka pizza."
+
+Yeh **Synchronous** hai. Yani jab tak jawab nahi milta, aap aam taur par koi aur kaam nahi karte.
+
+**Robot Mein Istemal**:
+*   "Meter zero kar do."
+*   "Abhi tasveer kheencho."
+*   "Kya battery full hai?"
+
+**Service Banana (Server):**
+Hum ek service banate hain jo do numbers ko jama (add) kare.
+
+```python
+from example_interfaces.srv import AddTwoInts
+import rclpy
+from rclpy.node import Node
+
+class AddTwoIntsServer(Node):
+    def __init__(self):
+        super().__init__('add_two_ints_server')
+        # Service banayi
+        self.srv = self.create_service(AddTwoInts, 'add_two_ints', self.add_two_ints_callback)
+
+    def add_two_ints_callback(self, request, response):
+        # Hisab kitaab
+        response.sum = request.a + request.b
+        self.get_logger().info(f'Sawal aaya: {request.a} + {request.b}')
+        return response
+
+def main():
+    rclpy.init()
+    node = AddTwoIntsServer()
+    rclpy.spin(node)
+    rclpy.shutdown()
+```
+
+### 2. Actions (Lamba Aur Mushkil Kaam)
+
+Action ko samjhein jaise **Ghar Banwana**.
+1.  **Goal (Maqsad)**: "Mera ghar banao."
+2.  **Feedback (Ittila)**: Mazdoor kaam karte hue batate hain: "Bunyaad dal gayi", "Deewar khari ho gayi".
+3.  **Result (Nateeja)**: "Ghar tayar hai."
+4.  **Cancel**: Aap beech mein keh sakte hain "Kaam rok do!"
+
+Yeh **Asynchronous** hai. Yani ghar bante waqt aap apne office ka kaam kar sakte hain, aap ko wahan kharay rehne ki zaroorat nahi.
+
+**Robot Mein Istemal**:
+*   "Kitchen mein jao." (Is mein 2 minute lagenge aur rasta dhoondna parega).
+*   "Cup uthao." (Is mein planning aur ehtiyat chahiye).
+
+Agar aap "Kitchen jao" ke liye Service use karenge, to robot ka program 2 minute ke liye hang ho jayega. Action ke sath, robot chaltay hue bhi sensors dekh sakta hai.
+
+</Personalization>
+
+<Personalization level="expert" language="urdu">
+
+## Asynchronous Architecture Aur State Machines
+
+**Blocking vs Non-Blocking Control**
+
+Physical AI mein "Waqt" (Time) sab kuch hai.
+*   **Services**: Aam taur par client ko block kar deti hain (rok deti hain) jab tak jawab na aaye.
+*   **Actions**: Non-blocking hoti hain. Aap hukum de kar apna doosra kaam jari rakh sakte hain.
+
+### 1. Service Deadlock (Phans Jana)
+
+ROS 2 `rclpy` mein ek aam ghalti hoti hai: Ek callback ke andar Service call karna.
+**Scenario**:
+1.  Node ko message mila (Callback A).
+2.  Callback A ke andar usne Service call ki aur jawab ka intezar karne laga.
+3.  Lekin Node ka "Executor" to Callback A mein phansa hua hai, isliye wo Service ka jawab network se receive hi nahi kar pata.
+4.  **Nateeja**: Deadlock. Program hang ho jata hai.
+
+**Hal**: Hamesha `call_async()` use karein ya `MultiThreadedExecutor` lagayein.
+
+### 2. Actions: Humanoid Robot Ka Asal Control
+
+Humanoid robot ki har harkat takreeban ek **Action** hoti hai.
+Action Server asal mein ek State Machine hai:
+1.  **Goal Received**: Check karo kya goal mumkin hai? (Kya haath wahan tak pohnch sakta hai?)
+2.  **Goal Accepted**: Rasta plan karo.
+3.  **Executing**: Motors ko current bhejo.
+4.  **Feedback**: Har pal client ko batao ke "Main kitna qareeb hoon".
+5.  **Preemption (Cancel)**: Agar koi bacha samne aa jaye, to foran goal cancel karo aur robot ko safe tareeqay se roko.
+
+**Code Logic (Conceptual)**
+
+```python
+async def execute_callback(self, goal_handle):
+    self.get_logger().info('Goal par kaam shuru...')
+    
+    # Lamba loop
+    for i in range(1, 10):
+        # Check karein ke kahin rukne ka hukum to nahi aaya?
+        if goal_handle.is_cancel_requested:
+            goal_handle.canceled()
+            return ActionResult()
+        
+        # Feedback bhejein
+        feedback_msg = MyAction.Feedback()
+        feedback_msg.percent_complete = i * 10.0
+        goal_handle.publish_feedback(feedback_msg)
+        time.sleep(1)
+
+    goal_handle.succeed()
+    result = MyAction.Result()
+    result.success = True
+    return result
+```
+*Note: Python mein Actions `async` aur `await` (asyncio library) ka istemal karti hain taake computer hang na ho.*
+
+</Personalization>
+
+<Quiz questions={[
+  {
+    question: "If you need a robot to navigate a maze (taking several minutes), which communication method should you use?",
+    options: ["Service", "Topic", "Action", "Parameter"],
+    correctAnswer: 2
+  },
+  {
+    question: "What is the danger of calling a synchronous Service inside a Topic callback in a SingleThreadedExecutor?",
+    options: [
+      "It will run too fast",
+      "It causes a Deadlock (the node hangs)",
+      "It uses too much battery",
+      "It deletes the code"
+    ],
+    correctAnswer: 1
+  },
+  {
+    question: "Urdu: Action ka wo kaunsa hissa hai jo kaam ke dauran musalsal updates deta hai?",
+    options: [
+      "Goal",
+      "Result",
+      "Feedback",
+      "Cancel"
+    ],
+    correctAnswer: 2
+  }
+]} />
