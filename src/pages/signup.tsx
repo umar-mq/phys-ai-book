@@ -19,7 +19,7 @@ export default function Signup() {
     setError('');
     try {
       await signup(email, password, name);
-      history.push('/profile');
+      history.push('/docs/module-1/intro-physical-ai-setup');
     } catch (err) {
       setError('Failed to create account. Try again.');
     } finally {

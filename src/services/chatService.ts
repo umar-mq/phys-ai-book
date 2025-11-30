@@ -12,6 +12,11 @@ export interface ChatResponse {
   sources?: Array<{ title: string; url: string }>;
 }
 
+export interface ResearchResponse {
+  response: string;
+  reasoning: string;
+}
+
 // --- Mock Implementation ---
 
 const mockSendMessage = async (message: string, history: ChatMessage[]): Promise<ChatResponse> => {
@@ -32,6 +37,14 @@ const mockSendMessage = async (message: string, history: ChatMessage[]): Promise
 const mockSendSelectedChat = async (selectedText: string, userQuery: string): Promise<string> => {
   await new Promise((resolve) => setTimeout(resolve, 1500));
   return `(Mock) You asked about "${selectedText}". Here is the explanation: ...`;
+};
+
+const mockFetchLatest = async (bookSection: string): Promise<ResearchResponse> => {
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  return {
+    response: `### Recent Breakthroughs in ${bookSection}\n\n*   **Paper A (2024)**: Proposed a new method for sim-to-real transfer.\n*   **Paper B (2025)**: Achieved 500Hz control loops on edge hardware.\n\nThese developments suggest a shift towards...`,
+    reasoning: "I searched Arxiv for 'Physical AI' and 'Sim-to-Real' filtered by date > 2024."
+  };
 };
 
 
@@ -67,18 +80,27 @@ const realSendSelectedChat = async (selectedText: string, userQuery: string): Pr
   const res = await fetch(`${getApiBaseUrl()}/api/chat/selected`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       selected_text: selectedText, 
       user_query: userQuery 
     }),
   });
 
-  if (!res.ok) {
-    throw new Error('Selected chat request failed');
-  }
+  if (!res.ok) throw new Error('Selected chat request failed');
 
   const data = await res.json();
   return typeof data === 'string' ? data : data.response || JSON.stringify(data);
+};
+
+const realFetchLatest = async (bookSection: string): Promise<ResearchResponse> => {
+  const res = await fetch(`${getApiBaseUrl()}/api/latest-developments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ book_section: bookSection }),
+  });
+
+  if (!res.ok) throw new Error('Research request failed');
+  return res.json();
 };
 
 // --- Exported Service ---
@@ -86,4 +108,5 @@ const realSendSelectedChat = async (selectedText: string, userQuery: string): Pr
 export const ChatService = {
   sendMessage: USE_MOCK_API ? mockSendMessage : realSendMessage,
   sendSelectedChat: USE_MOCK_API ? mockSendSelectedChat : realSendSelectedChat,
+  fetchLatest: USE_MOCK_API ? mockFetchLatest : realFetchLatest,
 };

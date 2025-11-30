@@ -13,6 +13,7 @@ export default function ChatWidget() {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -61,13 +62,40 @@ export default function ChatWidget() {
     }
   };
 
+  const handleListen = (text: string, id: string) => {
+    if (!user) {
+        alert("Please log in to use the Text-to-Speech feature.");
+        return;
+    }
+
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+
+    if (playingId === id) {
+        setPlayingId(null);
+        return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Optional: Select a better voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Natural'));
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    utterance.onend = () => setPlayingId(null);
+    utterance.onerror = () => setPlayingId(null);
+    
+    setPlayingId(id);
+    window.speechSynthesis.speak(utterance);
+  };
+
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       
       {/* Chat Window */}
       <div className={clsx(
         "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl rounded-2xl w-80 sm:w-96 flex flex-col transition-all duration-300 origin-bottom-right overflow-hidden mb-4",
-        isOpen ? "scale-100 opacity-100 h-[500px]" : "scale-0 opacity-0 h-0"
+        isOpen ? "scale-100 opacity-100 h-[600px]" : "scale-0 opacity-0 h-0"
       )}>
         
         {/* Header */}
@@ -84,22 +112,47 @@ export default function ChatWidget() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-black/20">
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50 dark:bg-black/20">
           {messages.map((msg) => (
             <div 
               key={msg.id} 
               className={clsx(
-                "max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed overflow-hidden",
-                msg.role === 'user' 
-                  ? "bg-primary text-white ml-auto rounded-tr-none" 
-                  : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 mr-auto rounded-tl-none text-gray-800 dark:text-gray-200"
+                "flex flex-col max-w-[85%]",
+                msg.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
               )}
             >
-              <div className="markdown-content">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              <div 
+                className={clsx(
+                  "p-3 rounded-2xl text-sm shadow-sm",
+                  msg.role === 'user' 
+                    ? "bg-primary text-white rounded-tr-none" 
+                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-tl-none text-gray-800 dark:text-gray-200"
+                )}
+              >
+                <div className="markdown-content prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                </div>
               </div>
+              
+              {/* Actions Line */}
+              {msg.role === 'assistant' && (
+                  <div className="mt-1 ml-1 flex items-center space-x-2">
+                      <button 
+                        onClick={() => handleListen(msg.content, msg.id!)}
+                        className={clsx(
+                            "text-xs p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center space-x-1",
+                            playingId === msg.id ? "text-primary animate-pulse" : "text-gray-400"
+                        )}
+                        title="Listen to this response"
+                      >
+                        <span>{playingId === msg.id ? '🔊' : '🔈'}</span>
+                        <span className="hidden group-hover:inline">Listen</span>
+                      </button>
+                  </div>
+              )}
             </div>
           ))}
+          
           {isTyping && (
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-2xl rounded-tl-none mr-auto w-16 flex items-center justify-center space-x-1">
               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

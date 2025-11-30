@@ -60,6 +60,8 @@ const config: Config = {
     },
   },
 
+  scripts: [],
+
   presets: [
     [
       'classic',
@@ -105,7 +107,7 @@ const config: Config = {
           label: 'Modules',
         },
         {
-          type: 'dropdown',
+          type: 'custom-authProfile',
           position: 'right',
           label: '👤',
           className: 'navbar-profile-dropdown',
